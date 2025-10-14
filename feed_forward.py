@@ -11,14 +11,24 @@ testing_dataset = dataset.iloc[split_idx:, :]
 training_input = training_dataset.iloc[:, :8].values
 
 class MultiLayerANN:
-    def __init__(self, layers, activations):
+    def __init__(self, layers, activations, params = None):
         self.layers = layers
         self.activations = activations
         self.weights = []
         self.biases = []
-        for i in range(len(layers) - 1):
-            self.weights.append(np.random.randn(layers[i], layers[i+1]) * 0.1)
-            self.biases.append(np.zeros((1, layers[i+1])))
+
+        if params is not None:
+            self.weights = params[0]
+            self.biases = params[1]
+        else:
+            # --- Create random weights & biases for each layer ---
+            for i in range(len(layers) - 1):
+                self.weights.append(np.random.randn(layers[i], layers[i+1]) * 0.1)
+                self.biases.append(np.zeros((1, layers[i+1])))
+       
+        
+        
+    
     
     def _logistic(self, x):
         return 1 / (1 + np.exp(-x))
@@ -37,18 +47,26 @@ class MultiLayerANN:
                 return self._relu(x)
             case 'tanh':
                 return self._tanh(x)
+            case 'linear':
+                return x
             case _:
                 raise ValueError(f'Unknown activation function: {fn_name}')
 
     def _forward(self, X):
+        
+        num_hidden_layers = len(self.layers) - 2
         a = X  
-        for i in range(len(self.weights)):
-            z = np.dot(a, self.weights[i]) + self.biases[i]  # sum of weighted inputs and bias
-            a = self._activate(z, self.activations[i]) # a = activation_function(z)
-        return a
+        for i in range(num_hidden_layers):
+            z = np.dot(a, self.weights[i]) + self.biases[i] 
+            a = self._activate(z, self.activations[i])
+        
+        z = np.dot(a, self.weights[num_hidden_layers]) + self.biases[num_hidden_layers]
+        return z
 
-layers = [8, 16, 16, 1]
-activations = ['relu', 'relu', 'logistic']
-predictions = MultiLayerANN(layers, activations)._forward(training_input)
-print(predictions)
+
+
+# layers = [8, 2, 2, 1]
+# activations = ['relu', 'relu']
+# predictions = MultiLayerANN(layers, activations)._forward(training_input)
+# print(predictions)
     

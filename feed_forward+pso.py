@@ -1,1 +1,0 @@
-# feed_forward + pso implementation
