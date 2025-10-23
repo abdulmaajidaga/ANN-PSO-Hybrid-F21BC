@@ -11,6 +11,8 @@ testing_dataset = dataset.iloc[split_idx:, :]
 training_input = training_dataset.iloc[:, :8].values
 
 class MultiLayerANN:
+    # # ABDUL 
+    # Add loss function paramater and functions
     def __init__(self, layers, activations, params = None):
         self.layers = layers
         self.activations = activations
@@ -61,6 +63,7 @@ class MultiLayerANN:
             a = self._activate(z, self.activations[i])
         
         z = np.dot(a, self.weights[num_hidden_layers]) + self.biases[num_hidden_layers]
+        
         return z
 
 

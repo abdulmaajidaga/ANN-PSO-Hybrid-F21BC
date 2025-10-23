@@ -31,7 +31,8 @@ def initialize_particles(layers,num_particles):
         # --- Flatten and concatenate all into one long vector ---
         flat_vector = np.concatenate(
             [W.flatten() for W in weights] +
-            [b.flatten() for b in biases]
+            [b.flatten() for b in biases] + 
+            
         )
         
         particles.append(flat_vector)
@@ -56,6 +57,8 @@ def reconstruct_params(flat_vector, layers):
         b = flat_vector[idx:idx+b_size].reshape(1, layers[i+1])
         idx += b_size
         biases.append(b)
+        
+    
 
     return [weights, biases]
 
@@ -65,8 +68,17 @@ def objective_function(layers, activations, particles):
         params = reconstruct_params(particle, layers)
         ann = feed_forward.MultiLayerANN(layers, activations, params=params)
         predictions = ann._forward(training_input)
+        
+        
+        # # ABDUL 
+        # # Update ann class to return loss value based on selected loss function
+        # # Example code
+        # loss = ann._loss(predictions, training_dataset.iloc[:, 8:].values)
+        # loss_array.append(loss)
+        
         mse = np.mean((predictions - training_dataset.iloc[:, 8:].values) ** 2)
         mse_array.append(mse)
+        
         #print(f"MSE: {mse}")
     return np.array(mse_array)
 
@@ -78,7 +90,8 @@ def optimize_pso(num_iterations, pso):
     
 
 layers = [8, 16, 16, 1]
-activations = ['relu', 'relu']
+activations = ['relu','relu']
+loss_function = 'mse'
 
 num_particles = 50
 num_iterations = 100
