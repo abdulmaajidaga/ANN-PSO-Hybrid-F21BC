@@ -75,20 +75,21 @@ def optimize_pso(num_iterations, pso):
         pso._update()
         print(f"Iteration {iteration+1}/{num_iterations}, Global Best MSE: {pso.Gbest_value}")
     
+    
 
 layers = [8, 16, 16, 1]
 activations = ['relu', 'relu']
+
 num_particles = 50
 num_iterations = 100
 num_informants = 10
 
 particles = initialize_particles(layers, num_particles)
-reconstructed_params = reconstruct_params(particles[0], layers)
-
 obj_func = functools.partial(objective_function, layers, activations)
 pso = pso.ParticleSwarm(num_particles,num_informants, particles.shape[1], obj_func, particles=particles)
 optimize_pso(num_iterations, pso)
 
+#reconstructed_params = reconstruct_params(particles[0], layers)
 # ann = feed_forward.MultiLayerANN(layers, activations, params=reconstructed_params)
 # predictions = ann._forward(training_input)
 # print(predictions)
