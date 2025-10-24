@@ -13,25 +13,25 @@ training_input = training_dataset.iloc[:, :8].values
 class MultiLayerANN:
     # # ABDUL 
     # Add loss function paramater and functions
-    def __init__(self, layers, activations, params = None):
+    def __init__(self, layers, activations = None):
         self.layers = layers
-        self.activations = activations
+        self.num_layers = len(layers)
         self.weights = []
         self.biases = []
+        self.num_activation_functions = 4 # logistic, relu, tanh, linear
 
-        if params is not None:
-            self.weights = params[0]
-            self.biases = params[1]
+        # --- Create random weights & biases for each layer ---
+        for i in range(self.num_layers - 1):
+            self.weights.append(np.random.randn(layers[i], layers[i+1]) * 0.1)
+            self.biases.append(np.zeros((1, layers[i+1])))
+              
+        if activations is not None:
+            self.activations = activations
         else:
-            # --- Create random weights & biases for each layer ---
-            for i in range(len(layers) - 1):
-                self.weights.append(np.random.randn(layers[i], layers[i+1]) * 0.1)
-                self.biases.append(np.zeros((1, layers[i+1])))
-       
-        
-        
-    
-    
+            self.activations = ['relu'] * (len(layers) - 2) # Default activations
+            
+
+
     def _logistic(self, x):
         return 1 / (1 + np.exp(-x))
 
@@ -40,6 +40,7 @@ class MultiLayerANN:
 
     def _tanh(self, x):
         return np.tanh(x)
+    
 
     def _activate(self, x, fn_name):
         match fn_name:
@@ -54,22 +55,46 @@ class MultiLayerANN:
             case _:
                 raise ValueError(f'Unknown activation function: {fn_name}')
 
-    def _forward(self, X):
+    def _match_activations(self, activations_index):
+        activations = []
+        for index in activations_index:
+            match index:
+                case 0:
+                    name = 'logistic'
+                case 1: 
+                    name = 'relu'
+                case 2:
+                    name = 'tanh'
+                case 3:
+                    name = 'linear'
+                case _:
+                    raise ValueError(f'Unknown activation function index: {index}')
+            activations.append(name)
+        return activations
+
+
+    def _forward(self, X, params = None):
         
+        
+        if params is not None:
+            # Run feedforward with the custom params
+            weights = params[0]
+            biases = params[1]
+            activations = self._match_activations(params[2])
+            print(activations)
+        else:
+            # Use existing params in the ANN class
+            weights = self.weights
+            biases = self.biases
+            activations = self.activations
+            
         num_hidden_layers = len(self.layers) - 2
         a = X  
         for i in range(num_hidden_layers):
-            z = np.dot(a, self.weights[i]) + self.biases[i] 
-            a = self._activate(z, self.activations[i])
-        
-        z = np.dot(a, self.weights[num_hidden_layers]) + self.biases[num_hidden_layers]
+            z = np.dot(a, weights[i]) + biases[i]
+            a = self._activate(z, activations[i])
+
+        z = np.dot(a, weights[num_hidden_layers]) + biases[num_hidden_layers]
         
         return z
-
-
-
-# layers = [8, 2, 2, 1]
-# activations = ['relu', 'relu']
-# predictions = MultiLayerANN(layers, activations)._forward(training_input)
-# print(predictions)
     
