@@ -18,7 +18,7 @@ class MultiLayerANN:
         self.num_layers = len(layers)
         self.weights = []
         self.biases = []
-        self.num_activation_functions = 4 # logistic, relu, tanh, linear
+        self.activation_options = ["logistic", "relu", "tanh", "linear"]
 
         # --- Create random weights & biases for each layer ---
         for i in range(self.num_layers - 1):
@@ -80,15 +80,14 @@ class MultiLayerANN:
             # Run feedforward with the custom params
             weights = params[0]
             biases = params[1]
-            activations = self._match_activations(params[2])
-            print(activations)
+            activations = params[2]
         else:
             # Use existing params in the ANN class
             weights = self.weights
             biases = self.biases
             activations = self.activations
             
-        num_hidden_layers = len(self.layers) - 2
+        num_hidden_layers = self.num_layers - 2
         a = X  
         for i in range(num_hidden_layers):
             z = np.dot(a, weights[i]) + biases[i]
