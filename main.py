@@ -135,9 +135,9 @@ def optimize_pso(num_iterations, pso):
 layers = [8, 16, 16, 1]
 ann = feed_forward.MultiLayerANN(layers)
 
-num_particles = 75
-num_iterations = 200
-num_informants = 15
+num_particles = 50
+num_iterations = 300
+num_informants = 10
 
 particles , continuous_num, discrete_num, discrete_options = initialize_particles(ann)
 

@@ -8,8 +8,9 @@ from matplotlib.animation import FuncAnimation
 import pandas as pd
 
 
+
 class ParticleSwarm(object):
-    def  __init__(self, num_particles, num_informants, objective_function, particle_length_continuous, num_discrete_variables = None, num_discrete_options = None, alpha = 0.9, beta = 0.6, gamma = 1.0, delta = 0.8, epsilon = 0.15, particles = None ):
+    def  __init__(self, num_particles, num_informants, objective_function, particle_length_continuous, num_discrete_variables = None, num_discrete_options = None, alpha = 0.9, beta = 0.6, gamma = 1.0, delta = 0.8, epsilon = 0.25, particles = None ):
         self.num_particles = num_particles # Number of particles in the swarm (swarm size)
         self.particle_length_continuous = particle_length_continuous # Length in the continuous search space
         self.particle_length_discrete = num_discrete_variables * num_discrete_options # Length in the discrete search space
