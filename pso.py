@@ -8,7 +8,6 @@ from matplotlib.animation import FuncAnimation
 import pandas as pd
 
 
-
 class ParticleSwarm(object):
     def  __init__(self, num_particles, num_informants, objective_function, particle_length_continuous, num_discrete_variables = None, num_discrete_options = None, alpha = 0.9, beta = 0.6, gamma = 1.0, delta = 0.8, epsilon = 0.25, particles = None ):
         self.num_particles = num_particles # Number of particles in the swarm (swarm size)
@@ -195,7 +194,6 @@ class ParticleSwarm(object):
         mean_fitness = min(mean_fitness, 5000)  # <-- clip to a max of 5000
         self.mean_fitness_history.append(mean_fitness)
         self.Gbest_value_history.append(self.Gbest_value)
-        self.mean_fitness_history.append(np.mean(self.fitness_values_array))
         self.particle_history.append(self.particle_array.copy())
         self.velocity_history.append(self.velocity_array.copy())
         self.fitness_history.append(self.fitness_values_array.copy())

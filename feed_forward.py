@@ -43,34 +43,34 @@ class MultiLayerANN:
     
 
     def _activate(self, x, fn_name):
-        match fn_name:
-            case 'logistic':
-                return self._logistic(x)
-            case 'relu':
-                return self._relu(x)
-            case 'tanh':
-                return self._tanh(x)
-            case 'linear':
-                return x
-            case _:
-                raise ValueError(f'Unknown activation function: {fn_name}')
+        if fn_name == 'logistic':
+            return self._logistic(x)
+        elif fn_name == 'relu':
+            return self._relu(x)
+        elif fn_name == 'tanh':
+            return self._tanh(x)
+        elif fn_name == 'linear':
+            return x
+        else:
+            raise ValueError(f'Unknown activation function: {fn_name}')
+
 
     def _match_activations(self, activations_index):
         activations = []
         for index in activations_index:
-            match index:
-                case 0:
-                    name = 'logistic'
-                case 1: 
-                    name = 'relu'
-                case 2:
-                    name = 'tanh'
-                case 3:
-                    name = 'linear'
-                case _:
-                    raise ValueError(f'Unknown activation function index: {index}')
+            if index == 0:
+                name = 'logistic'
+            elif index == 1:
+                name = 'relu'
+            elif index == 2:
+                name = 'tanh'
+            elif index == 3:
+                name = 'linear'
+            else:
+                raise ValueError(f'Unknown activation function index: {index}')
             activations.append(name)
         return activations
+
 
 
     def _forward(self, X, params = None):
