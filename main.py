@@ -4,6 +4,7 @@ import ann
 import pso
 import ann_pso_bridge
 import loss_functions 
+import visualizer as v
 
 # --- TUNED PARAMETERS ---
 # 1. Back to the original, best-performing architecture
@@ -12,10 +13,11 @@ LAYERS = [8, 16, 16, 1]
 NUM_PARTICLES = 50
 # 3. Increase iterations for a longer search
 NUM_ITERATIONS = 500
-NUM_INFORMANTS = 5
+NUM_INFORMANTS = 10
 # 4. Back to the best-performing loss function
 LOSS_FUNCTION = 'mse' 
 # --- END TUNED PARAMETERS ---
+
 
 PSO_PARAMS = {
     'alpha': 0.729,   
@@ -24,6 +26,16 @@ PSO_PARAMS = {
     'delta': 1.494,   
     'epsilon': 0.25  
 }
+
+PSO_PARAMS_1 = {
+    'alpha': 0.729,   
+    'beta': 1.494,    
+    'gamma': 1.494,     
+    'delta': 0.347,   
+    'epsilon': 0.15  
+}
+
+
 
 def main():
     # 2. Load Data
@@ -65,22 +77,27 @@ def main():
         optimizer._update()
         
         scaled_loss = optimizer.Gbest_value
+        scaled_mean_loss = optimizer.mean_fitness
         real_loss = 0
+        real_mean_loss = 0
         
         # This logic is CRITICAL for correct reporting
         if LOSS_FUNCTION == 'mse':
             real_loss = scaled_loss * (y_std ** 2)
+            real_mean_loss = scaled_loss * (y_std ** 2)
         elif LOSS_FUNCTION == 'rmse' or LOSS_FUNCTION == 'mae':
             # Un-scale RMSE or MAE: (scaled_loss * std)
             real_loss = scaled_loss * y_std
+            real_mean_loss = scaled_loss * y_std
         else:
             real_loss = scaled_loss # Default for unknown
+            real_mean_loss = scaled_loss # Default for unknown
         
         gbest_loss_history.append(real_loss)
             
         # 7. Print progress periodically
         if (i + 1) % 10 == 0:
-            print(f"Iteration {i+1}/{NUM_ITERATIONS}, Global Best Loss: {real_loss:.6f}")
+            print(f"Iteration {i+1}/{NUM_ITERATIONS}, Global Best Loss: {real_loss:.6f}, Mean Loss: {real_mean_loss}")
 
     print("\nOptimization Finished.")
     
@@ -106,6 +123,20 @@ def main():
     
     print(f"Test Set {LOSS_FUNCTION.upper()} (un-scaled): {test_loss_real:.6f}")
     
+    # Visualizations
+    visualizer = v.Visualizer(
+        pso=optimizer,
+        layers=LAYERS,
+        pso_params=PSO_PARAMS,
+        num_particles=NUM_PARTICLES,
+        num_iterations=NUM_ITERATIONS,
+        num_informants=NUM_INFORMANTS,
+        loss_function=LOSS_FUNCTION
+    )   
+    
+    visualizer.record_test("Convergence_Test")
+    #visualizer.animate_pso_pca()
+
     # Return results for visualization
     return gbest_loss_history, y_test_real, test_predictions_real, LOSS_FUNCTION
 

@@ -1,0 +1,14 @@
+# PSO–ANN Test Configuration
+
+**Layers:** [8, 16, 16, 1]
+**Num Particles:** 50
+**Num Iterations:** 500
+**Num Informants:** 10
+**Loss Function:** mse
+
+## PSO Parameters
+- alpha: 0.729
+- beta: 1.494
+- gamma: 1.0
+- delta: 1.494
+- epsilon: 0.25
