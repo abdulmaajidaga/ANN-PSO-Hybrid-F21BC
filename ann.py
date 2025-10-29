@@ -20,8 +20,11 @@ class MultiLayerANN:
         self.num_layers = len(layers)
         self.weights = []
         self.biases = []
-        # Get the total number of available activation functions from the 'activations' module
+        # Get available activation functions as a list
+        self.activations_functions = act.get_activations()
+        # Get the total number of available activation functions 
         self.num_activation_functions = act.get_activation_count()
+        
 
         # Initialize weights and biases for connections between layers
         for i in range(self.num_layers - 1):
@@ -76,9 +79,9 @@ class MultiLayerANN:
         """
         weights = params[0]
         biases = params[1]
-        activation_indices = params[2]
-        # Convert integer indices (from PSO) to string names
-        activation_names = [act.get_name_by_index(i) for i in activation_indices]
+        activations = params[2]
+        
+        
         
         # Use the static forward pass method with the provided parameters
-        return self.compute_forward(X, weights, biases, activation_names)
+        return self.compute_forward(X, weights, biases, activations)

@@ -9,10 +9,10 @@ import loss_functions
 # 1. Back to the original, best-performing architecture
 LAYERS = [8, 16, 16, 1] 
 # 2. Massively increase particles for a "brute force" search
-NUM_PARTICLES = 250
+NUM_PARTICLES = 50
 # 3. Increase iterations for a longer search
-NUM_ITERATIONS = 300
-NUM_INFORMANTS = 10
+NUM_ITERATIONS = 500
+NUM_INFORMANTS = 5
 # 4. Back to the best-performing loss function
 LOSS_FUNCTION = 'mse' 
 # --- END TUNED PARAMETERS ---
@@ -22,7 +22,7 @@ PSO_PARAMS = {
     'beta': 1.494,    
     'gamma': 1.0,     
     'delta': 1.494,   
-    'epsilon': 0.1    
+    'epsilon': 0.25  
 }
 
 def main():
@@ -36,7 +36,7 @@ def main():
     model_template = ann.MultiLayerANN(layers=LAYERS)
 
     # 4. Use Bridge to Create PSO-Specific Components
-    initial_particles = ann_pso_bridge.initialize_particles(model_template, NUM_PARTICLES)
+    initial_particles, particle_length, discrete_params = ann_pso_bridge.initialize_particles(model_template, NUM_PARTICLES)
     
     obj_func = ann_pso_bridge.create_objective_function(
         model_template, 
@@ -45,16 +45,15 @@ def main():
         loss_function_name=LOSS_FUNCTION
     )
 
-    particle_length = initial_particles.shape[1]
-
     # 5. Initialize and Run Optimizer
     optimizer = pso.ParticleSwarm(
         num_particles=NUM_PARTICLES,
         num_informants=NUM_INFORMANTS,
-        particle_length=particle_length,
-        objective_function=obj_func,
-        particles=initial_particles,
         num_iterations=NUM_ITERATIONS,
+        objective_function=obj_func,
+        particle_length=particle_length,
+        discrete_params=discrete_params,
+        particles=initial_particles,
         **PSO_PARAMS
     )
     

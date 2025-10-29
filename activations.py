@@ -30,3 +30,6 @@ def get_name_by_index(index):
 
 def get_activation_count():
     return len(ACTIVATION_MAP)
+
+def get_activations():
+    return ACTIVATION_MAP
