@@ -6,13 +6,58 @@ import Utility.ann_pso_bridge as ann_pso_bridge
 import ANN.loss_functions as loss_functions 
 import Utility.visualizer as v
 
+from ANN.architecture_search import ArchitectureSearch
+
+# --- START OF ARCHITECTURE SEARCH ---
+def run_architecture_search():
+    """Run automated architecture search before main PSO optimization."""
+    print("\n" + "="*70)
+    print("RUNNING AUTOMATED ARCHITECTURE SEARCH")
+    print("="*70 + "\n")
+    
+    # Load data
+    (X_train, y_train), (X_test, y_test), y_scale_params = \
+        data_loader.load_concrete_data("concrete_data.csv")
+    
+    # Create searcher
+    searcher = ArchitectureSearch(X_train, y_train, X_test, y_test, y_scale_params)
+    
+    # Run search (adjust parameters as needed)
+    searcher.search(
+        max_layers=3,              # Test up to 3 hidden layers
+        max_neurons=32,            # Max 32 neurons per layer
+        training_iterations=300,   # 300 epochs (faster)
+        test_activations=True      # Test activation combinations
+    )
+    
+    # Print results
+    searcher.print_summary(top_n=10)
+    
+    # Save results
+    searcher.save_results('architecture_search_results.json')
+    searcher.save_csv('architecture_search_results.csv')
+    searcher.plot_results('architecture_comparison.png')
+    
+    # Get best architecture
+    best = searcher.get_best_results(top_n=1)[0]
+    
+    print("\n" + "="*70)
+    print("RECOMMENDED ARCHITECTURE FOR PSO:")
+    print(f"  Layers: {best['architecture']}")
+    print(f"  Activations: {best['activations']}")
+    print(f"  Test RMSE: {best['final_test_rmse_unscaled']:.4f} MPa")
+    print("="*70 + "\n")
+    
+    return best['architecture'], best['activations']
+# --- END OF ARCHITECTURE SEARCH ---
+
 # --- TUNED PARAMETERS ---
 # 1. Back to the original, best-performing architecture
-LAYERS = [8, 16, 16, 1] 
+LAYERS = [8, 20, 20, 1] 
 # 2. Massively increase particles for a "brute force" search
-NUM_PARTICLES = 50
+NUM_PARTICLES = 100
 # 3. Increase iterations for a longer search
-NUM_ITERATIONS = 100
+NUM_ITERATIONS = 10000
 NUM_INFORMANTS = 10
 # 4. Back to the best-performing loss function
 LOSS_FUNCTION = 'mse' 
@@ -34,7 +79,31 @@ PSO_PARAMS_2 = {
     'epsilon': 0.75 
 }
 
-PSO_PARAMS = PSO_PARAMS_2
+PSO_PARAMS_HYBRID = {
+    'alpha': 0.729,
+    'beta': 1.49445,
+    'gamma': 0.747225,
+    'delta': 0.747225,
+    'epsilon': 1.0
+}
+
+PSO_PARAMS_GLOBAL = {
+    'alpha': 0.729,    
+    'beta': 1.49445,   
+    'gamma': 0.0,      
+    'delta': 1.49445,  
+    'epsilon': 1.0      
+}
+
+PSO_PARAMS_LOCAL = {
+    'alpha': 0.729,   
+    'beta': 1.49445,    
+    'gamma': 1.49445, 
+    'delta': 0.0,       
+    'epsilon': 1.0     
+}
+
+PSO_PARAMS = PSO_PARAMS_HYBRID
 
 def main():
     # 2. Load Data
@@ -142,5 +211,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # Uncomment the following lines to run architecture search, but comment main before doing this
+    # best_layers, best_activations = run_architecture_search()
+    # LAYERS = best_layers
+    # print(f"\nUsing discovered architecture: {LAYERS}")
+    # print(f"Using discovered activations: {best_activations}\n")
     main()
 
