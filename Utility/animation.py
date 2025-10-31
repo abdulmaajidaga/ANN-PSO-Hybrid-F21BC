@@ -1,6 +1,6 @@
 # save_climbing_animation.py
 import numpy as np
-import pso  # Your modified pso.py file
+import PSO.pso as pso  # Your modified pso.py file
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation

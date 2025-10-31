@@ -9,6 +9,7 @@ import pandas as pd
 class Visualizer:
     def __init__(self, pso, layers=None, pso_params=None, num_particles=None,
                  num_iterations=None, num_informants=None, loss_function=None,
+                 intial_scaled_loss=None, final_scaled_loss=None, final_real_loss=None, test_real_loss = None,
                  base_dir="Test_Results"):
         """
         Initialize visualizer with PSO object and experiment metadata.
@@ -20,6 +21,10 @@ class Visualizer:
         self.num_iterations = num_iterations
         self.num_informants = num_informants
         self.loss_function = loss_function
+        self.intial_scaled_loss = intial_scaled_loss
+        self.final_scaled_loss = final_scaled_loss
+        self.final_real_loss = final_real_loss
+        self.test_real_loss = test_real_loss
         self.base_dir = base_dir
 
 
@@ -36,7 +41,13 @@ class Visualizer:
             f.write("## PSO Parameters\n")
             if self.pso_params:
                 for k, v in self.pso_params.items():
-                    f.write(f"- {k}: {v}\n")
+                    f.write(f"- {k}: {v}\n\n")
+                    
+            f.write(f"Initial Best Loss (un-scaled): {self.intial_scaled_loss:.6f}\n")
+            f.write(f"Final Best Loss (un-scaled): {self.final_scaled_loss:.6f}\n")
+            f.write(f"Final Best Loss (scaled): {self.final_real_loss:.6f}\n")
+            f.write(f"Test Set Loss (scaled): {self.test_real_loss:.6f}\n")
+            
         print(f"[INFO] Parameters saved to: {file_path}")
 
     # -------------------------------------------------------------
@@ -127,10 +138,10 @@ class Visualizer:
         plt.close(fig)
 
 
-    def plot_convergence(self):
+    def plot_fitness_convergence(self):
         """Plot and save global best and mean fitness convergence."""
         plt.figure(figsize=(8, 5))
-        plt.plot(self.pso.Gbest_value_history, label="Global Best")
+        #plt.plot(self.pso.Gbest_value_history, label="Global Best")
         plt.plot(self.pso.mean_fitness_history, label="Mean Fitness", linestyle="--")
         plt.xlabel("Iteration")
         plt.ylabel("Fitness (MSE)")
@@ -142,6 +153,45 @@ class Visualizer:
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close()
         print(f"[SAVED] Convergence plot -> {save_path}")
+
+
+    def plot_mean_position_convergence(self, component_wise=False):
+        """
+        Plot the convergence of the swarm in terms of average particle position.
+        
+        Parameters
+        ----------
+        component_wise : bool, optional (default=False)
+            If True, plots each dimension of the mean position vector separately.
+            If False, plots the L2 norm (magnitude) of the mean position over time.
+        """
+        mean_positions = [np.mean(particles, axis=0) for particles in self.pso.particle_history]
+        mean_positions = np.array(mean_positions)  # shape: (iterations, dimensions)
+
+        plt.figure(figsize=(8, 5))
+
+        if component_wise and mean_positions.shape[1] <= 10:
+            # Plot each dimension separately (only if reasonably few dimensions)
+            for d in range(mean_positions.shape[1]):
+                plt.plot(mean_positions[:, d], label=f"Dim {d+1}")
+            plt.ylabel("Mean Position (per Dimension)")
+            plt.title("Component-wise Mean Particle Position Convergence")
+            plt.legend()
+        else:
+            # Plot the L2 norm (magnitude)
+            norms = np.linalg.norm(mean_positions, axis=1)
+            plt.plot(norms, color="teal")
+            plt.ylabel("‖Mean Position‖ (L2 Norm)")
+            plt.title("Mean Particle Position Convergence (Magnitude)")
+
+        plt.xlabel("Iteration")
+        plt.grid(True)
+
+        save_path = os.path.join(self.test_dir, "mean_position_convergence.jpg")
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+        print(f"[SAVED] Mean position convergence plot -> {save_path}")
+
 
     def plot_swarm_diversity(self):
         """Plot and save average swarm diversity across iterations."""
@@ -179,7 +229,7 @@ class Visualizer:
         print(f"[SAVED] Velocity magnitude plot -> {save_path}")
 
 
-    def record_test(self, base_dir = "Test_Results" ):
+    def record_test(self, base_dir = "_Test_Results" ):
         
         # --- Create unique test folder ---
         os.makedirs(base_dir, exist_ok=True)
@@ -191,7 +241,8 @@ class Visualizer:
         # --- Write parameters file ---
         self._write_params_file()
         
-        self.plot_convergence()
+        self.plot_fitness_convergence()
+        self.plot_mean_position_convergence()
         self.plot_swarm_diversity()
         self.plot_velocity_magnitude()
         self.animate_pso_pca_gif()

@@ -1,5 +1,5 @@
 import numpy as np
-import loss_functions
+import ANN.loss_functions as loss_functions
 
 def initialize_particles(ann, num_particles):
     """
@@ -96,7 +96,6 @@ def reconstruct_params(flat_vector, ann):
 
     return [weights, biases, activations]
 
-# 2. ADD NEW PARAM
 def create_objective_function(ann, X_train, y_train, loss_function_name='mse'): 
     """
     A "factory" that returns the objective function the PSO will minimize.

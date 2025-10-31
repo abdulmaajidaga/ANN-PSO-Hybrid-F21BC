@@ -1,5 +1,5 @@
 import numpy as np
-import activations as act # Import the previously defined activation functions
+import ANN.activations as act # Import the previously defined activation functions
 
 class MultiLayerANN:
     """
