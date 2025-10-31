@@ -28,11 +28,11 @@ PSO_PARAMS = {
 }
 
 PSO_PARAMS_1 = {
-    'alpha': 0.729,   
-    'beta': 1.494,    
-    'gamma': 1.494,     
-    'delta': 0.347,   
-    'epsilon': 0.15  
+    'alpha': 0.9,   
+    'beta': 0.6,    
+    'gamma': 0.1,     
+    'delta': 1.0,   
+    'epsilon': 0.25  
 }
 
 
@@ -66,7 +66,7 @@ def main():
         particle_length=particle_length,
         discrete_params=discrete_params,
         particles=initial_particles,
-        **PSO_PARAMS
+        **PSO_PARAMS_1
     )
     
     gbest_loss_history = []

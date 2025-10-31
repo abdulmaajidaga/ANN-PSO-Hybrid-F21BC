@@ -4,9 +4,13 @@ import numpy as np
 
 class ParticleSwarm(object):
     def  __init__(self, num_particles, num_informants, num_iterations,  objective_function,  particle_length, discrete_params = None,
-                 alpha = 0.9, beta = 0.8, gamma = 0.5, delta = 0.8, epsilon = 0.25, particles = None, v_max_scale = 0.2):
+                 alpha = 0.729, beta = 1.494, gamma = 1.0, delta = 1.494, epsilon = 0.15, particles = None, v_max_scale = 0.2):
         
         print(alpha)
+        print(beta)
+        print(gamma)
+        print(epsilon)
+        
         self.num_particles = num_particles # Number of particles in the swarm (swarm size)
         self.objective_function = objective_function # Objective function to be minimized
         self.particle_length = particle_length # Total particle length
@@ -181,6 +185,8 @@ class ParticleSwarm(object):
         
         # --- Record for visualization --- genereated by chatgpt
         self.mean_fitness = np.mean(self.fitness_values_array)
+        print(self.mean_fitness)
+        print(self.Gbest_value)
         self.mean_fitness_history.append(self.mean_fitness)
         self.Gbest_value_history.append(self.Gbest_value)
         self.particle_history.append(self.particle_array.copy())
