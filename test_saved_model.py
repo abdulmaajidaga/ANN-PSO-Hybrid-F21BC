@@ -18,7 +18,7 @@ def main():
     # STEP 1: LOAD THE SAVED MODEL
     # ============================================================
     
-    model_data = model_utils.load_optimized_model('best_concrete_model.pkl')
+    model_data = model_utils.load_optimized_model('best_concrete_model_100000.pkl')
     
     # ============================================================
     # STEP 2: LOAD TEST DATA
@@ -87,7 +87,7 @@ def main():
     
     plt.tight_layout()
     plt.savefig('model_evaluation.png', dpi=300, bbox_inches='tight')
-    print("\n✓ Evaluation plots saved as 'model_evaluation.png'")
+    print("\n Evaluation plots saved as 'model_evaluation.png'")
     plt.show()
     
     print("\n" + "="*70)
