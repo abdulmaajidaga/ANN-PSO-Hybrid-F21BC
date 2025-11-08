@@ -165,7 +165,7 @@ def main():
     
     test_folder = visualizer.record_test()
     model_utils.plot_predictions(y_test_real,test_predictions_real, test_folder = test_folder)
-    #model_utils.save_and_evaluate(optimizer, model_template, ann_pso_bridge, y_mean, y_std, PSO_PARAMS, NUM_ITERATIONS, LOSS_FUNCTION, X_test, y_test)
+    model_utils.save_and_evaluate(optimizer, model_template, ann_pso_bridge, y_mean, y_std, PSO_PARAMS, NUM_ITERATIONS, LOSS_FUNCTION, X_test, y_test)
 
 
 

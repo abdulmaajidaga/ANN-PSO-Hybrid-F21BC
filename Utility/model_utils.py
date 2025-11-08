@@ -126,7 +126,7 @@ def predict_with_saved_model(model_data, X):
     return predictions
 
 
-def evaluate_saved_model(model_data, X_test, y_test, verbose=True):
+def evaluate_saved_model(model_data, X_test, y_test, verbose=False):
     """
     Full evaluation of saved model on test set
     

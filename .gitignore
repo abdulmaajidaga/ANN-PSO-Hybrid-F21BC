@@ -4,3 +4,4 @@ __pycache__/
 *.py[cod]
 *.pyo
 _Test_Results
+*.pkl
