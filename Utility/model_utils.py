@@ -5,9 +5,11 @@ Utility functions to save and load optimized MLP parameters
 import numpy as np
 import pickle
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import matplotlib.pyplot as plt
+import ANN.ann as ann
 
 
-def save_optimized_model(optimizer, model_template, y_scale_params, pso_params, 
+def save_optimized_model(optimizer, model_template, bridge, y_scale_params, pso_params, 
                         num_iterations, loss_function, filename='optimized_model.pkl'):
     """
     Save the best optimized model parameters to a file
@@ -21,13 +23,14 @@ def save_optimized_model(optimizer, model_template, y_scale_params, pso_params,
         loss_function: Loss function name used
         filename: Output filename
     """
-    from BRIDGE import reconstruct_params
     
     y_mean, y_std = y_scale_params
-    
     # Get best parameters
-    best_params = reconstruct_params(optimizer.Gbest, model_template)
-    
+    best_params = bridge.reconstruct_params(optimizer.Gbest)
+    if bridge.discrete:
+        activations = best_params[2]
+    else:
+        activations = bridge.ann.activations
     # Package everything together
     model_data = {
         # Architecture
@@ -36,7 +39,7 @@ def save_optimized_model(optimizer, model_template, y_scale_params, pso_params,
         # Optimized parameters
         'weights': best_params[0],
         'biases': best_params[1],
-        'activations': best_params[2],
+        'activations': activations,
         
         # Training info
         'best_loss': optimizer.Gbest_value,
@@ -99,7 +102,7 @@ def load_optimized_model(filename='optimized_model.pkl'):
     return model_data
 
 
-def predict_with_saved_model(model_data, X, ann_module):
+def predict_with_saved_model(model_data, X):
     """
     Make predictions using saved model parameters
     
@@ -112,7 +115,7 @@ def predict_with_saved_model(model_data, X, ann_module):
         predictions: Model predictions (scaled - need to unscale for real values)
     """
     # Create model with same architecture
-    model = ann_module.MultiLayerANN(layers=model_data['layers'])
+    model = ann.MultiLayerANN(layers=model_data['layers'])
     
     # Use the saved parameters
     params = [model_data['weights'], model_data['biases'], model_data['activations']]
@@ -123,7 +126,7 @@ def predict_with_saved_model(model_data, X, ann_module):
     return predictions
 
 
-def evaluate_saved_model(model_data, X_test, y_test, ann_module, verbose=True):
+def evaluate_saved_model(model_data, X_test, y_test, verbose=True):
     """
     Full evaluation of saved model on test set
     
@@ -141,7 +144,7 @@ def evaluate_saved_model(model_data, X_test, y_test, ann_module, verbose=True):
     y_std = model_data['y_std']
     
     # Get predictions (scaled)
-    predictions_scaled = predict_with_saved_model(model_data, X_test, ann_module)
+    predictions_scaled = predict_with_saved_model(model_data, X_test)
     
     # Unscale to original values
     predictions_real = (predictions_scaled * y_std) + y_mean
@@ -176,7 +179,7 @@ def evaluate_saved_model(model_data, X_test, y_test, ann_module, verbose=True):
         print(f"Root Mean Squared Error (RMSE): {rmse:.4f} MPa")
         print(f"Mean Absolute Error (MAE):      {mae:.4f} MPa")
         print(f"Mean Squared Error (MSE):       {mse:.4f}")
-        print(f"R² Score:                       {r2:.4f}")
+        print(f"R2 Score:                       {r2:.4f}")
         print(f"Mean Absolute Percentage Error: {mape:.2f}%")
         print("="*60)
         
@@ -195,6 +198,71 @@ def evaluate_saved_model(model_data, X_test, y_test, ann_module, verbose=True):
         print("-"*60)
     
     return metrics
+
+def save_and_evaluate( optimizer, model_template, ann_pso_bridge, y_mean, y_std, PSO_PARAMS, NUM_ITERATIONS, LOSS_FUNCTION, X_test, y_test):
+    # ============================================================
+    # SAVE THE OPTIMIZED MODEL
+    # ============================================================
+    
+    print("\n" + "="*60)
+    print("SAVING OPTIMIZED MODEL")
+    print("="*60)
+    
+    # Save the model with all necessary information
+    model_data = save_optimized_model(
+        optimizer=optimizer,
+        model_template=model_template,
+        bridge = ann_pso_bridge,
+        y_scale_params=(y_mean, y_std),
+        pso_params=PSO_PARAMS,
+        num_iterations=NUM_ITERATIONS,
+        loss_function=LOSS_FUNCTION,
+        filename='model.pkl',
+    )
+    
+    # ============================================================
+    # EVALUATE THE SAVED MODEL ON TEST SET
+    # ============================================================
+    
+    print("\n" + "="*60)
+    print("EVALUATING OPTIMIZED MODEL")
+    print("="*60)
+    
+    metrics = evaluate_saved_model(
+        model_data=model_data,
+        X_test=X_test,
+        y_test=y_test,
+        verbose=True
+    )
+    
+    # Store test metrics in model_data for later
+    model_data['test_rmse'] = metrics['RMSE']
+    model_data['test_mae'] = metrics['MAE']
+    model_data['test_r2'] = metrics['R2']
+    model_data['test_mape'] = metrics['MAPE']
+    
+    # Re-save with test metrics
+    import pickle
+    with open('model.pkl', 'wb') as f:
+        pickle.dump(model_data, f)
+    
+    print("Model updated with test metrics")
+    
+    # ============================================================
+    # OPTIONAL: SAVE TRAINING STATISTICS FOR LATER SCALING
+    # ============================================================
+    
+    # Save training data statistics (needed for predicting new samples)
+    # train_stats = {
+    #     'X_mean': X_train.mean(axis=0),
+    #     'X_std': X_train.std(axis=0),
+    #     'y_mean': y_mean,
+    #     'y_std': y_std
+    # }
+    
+    # with open('training_stats.pkl', 'wb') as f:
+    #     pickle.dump(train_stats, f)
+    # print(" Training statistics saved to 'training_stats.pkl'")
 
 
 def predict_new_sample(model_data, sample, X_train_mean, X_train_std, ann_module):
@@ -225,3 +293,26 @@ def predict_new_sample(model_data, sample, X_train_mean, X_train_std, ann_module
     pred_real = (pred_scaled * model_data['y_std']) + model_data['y_mean']
     
     return pred_real[0, 0]
+
+def plot_predictions(actual, predicted, test_folder = None):
+    
+    fig, ax = plt.subplots(figsize=(7, 5))  # Single figure, single axis
+
+    # Plot: Predictions vs Actual
+    ax.scatter(actual, predicted, alpha=0.5)
+    ax.plot([actual.min(), actual.max()],
+            [actual.min(), actual.max()],
+            'r--', lw=2)
+    ax.set_xlabel('Actual Strength (MPa)')
+    ax.set_ylabel('Predicted Strength (MPa)')
+    ax.set_title("Predictions vs Actual")
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    print(test_folder)
+    if test_folder is not None:
+        plt.savefig(f'{test_folder}\model_predictions.png', dpi=300, bbox_inches='tight')
+    else:
+        plt.savefig('model_predictions.png', dpi=300, bbox_inches='tight')
+    print("\nEvaluation plot saved as 'model_predictions.png'")
+    plt.show()

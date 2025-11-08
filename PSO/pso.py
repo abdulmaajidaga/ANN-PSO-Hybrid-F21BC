@@ -6,7 +6,6 @@ class ParticleSwarm(object):
     def  __init__(self, num_particles, num_informants, num_iterations,  objective_function,  particle_length, discrete_params = None,
                  alpha = 0.729, beta = 1.494, gamma = 1.0, delta = 1.494, epsilon = 0.15, particles = None, v_max_scale = 0.2):
         
-        print(alpha)
         self.num_particles = num_particles # Number of particles in the swarm (swarm size)
         self.objective_function = objective_function # Objective function to be minimized
         self.particle_length = particle_length # Total particle length
@@ -59,7 +58,6 @@ class ParticleSwarm(object):
         global_best_idx = np.argmin(self.fitness_values_array)
         self.Gbest = self.particle_array[global_best_idx] 
         self.Gbest_value = self.fitness_values_array[global_best_idx] 
-        print(f"Initial Global Best Value: {self.Gbest_value}")
         
         mean_fitness = np.mean(self.fitness_values_array)
         self.mean_fitness_history.append(mean_fitness)
@@ -166,16 +164,7 @@ class ParticleSwarm(object):
         global_best_idx = np.argmin(self.personal_best_fitness_values)
         if self.personal_best_fitness_values[global_best_idx] < self.Gbest_value:
             self.Gbest = self.particle_array[global_best_idx]
-            self.Gbest_value = self.personal_best_fitness_values[global_best_idx]
-
-            
-        # ## Version to set gbest based on the current particle fitness values
-        # # Update global best position and value
-        # global_best_idx = np.argmin(self.fitness_values_array)
-        # if self.fitness_values_array[global_best_idx] < self.Gbest_value:
-        #     self.Gbest = self.particle_array[global_best_idx]
-        #     self.Gbest_value = self.fitness_values_array[global_best_idx]
-            
+            self.Gbest_value = self.personal_best_fitness_values[global_best_idx]       
         
         self._update_informants_best()
         
@@ -183,11 +172,11 @@ class ParticleSwarm(object):
         self.mean_fitness = np.mean(self.fitness_values_array)
         self.mean_fitness_history.append(self.mean_fitness)
         self.Gbest_value_history.append(self.Gbest_value)
-        # self.particle_history.append(self.particle_array.copy())
-        # self.velocity_history.append(self.velocity_array.copy())
-        # self.fitness_history.append(self.fitness_values_array.copy())
-        # self.Gbest_position_history.append(self.Gbest.copy())
-        #self.particle_history.append(np.copy(self.particle_array))
+        self.particle_history.append(self.particle_array.copy())
+        self.velocity_history.append(self.velocity_array.copy())
+        self.fitness_history.append(self.fitness_values_array.copy())
+        self.Gbest_position_history.append(self.Gbest.copy())
+        self.particle_history.append(np.copy(self.particle_array))
         
         
     

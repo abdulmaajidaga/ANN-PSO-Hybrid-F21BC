@@ -15,8 +15,7 @@ class MultiLayerANN:
         for i in range(self.num_layers - 1):
             self.weights.append(np.random.randn(layers[i], layers[i+1]) * 0.1)  # 0.1 is the scaling factor
             self.biases.append(np.zeros((1, layers[i+1]))) # Bias is initialized to zero
-
-        # added by Dilon      
+    
         if activations is not None:
             self.activations = activations
         else:
@@ -42,7 +41,10 @@ class MultiLayerANN:
     # added by Dilon
     def evaluate_with_params(self, X, params):
         weights = params[0]
-        biases = params[1]
-        activations = params[2]
-
+        biases = params[1] 
+        if len(params) > 2:
+            activations = params[2]
+        else: 
+            activations = self.activations
+        
         return self.compute_forward(X, weights, biases, activations)

@@ -2,8 +2,7 @@ import numpy as np
 import Utility.data_loader as data_loader
 import ANN.ann as ann
 import PSO.pso as pso
-import BRIDGE
-# import Utility.ann_pso_bridge as ann_pso_bridge
+import BRIDGE.bridge as bridge
 import ANN.loss_functions as loss_functions 
 import Utility.visualizer as v
 import Utility.model_utils as model_utils
@@ -12,12 +11,13 @@ import Utility.model_utils as model_utils
 # 1. Back to the original, best-performing architecture
 LAYERS = [8, 16, 16, 16, 1] 
 # 2. Massively increase particles for a "brute force" search
-NUM_PARTICLES = 100
+NUM_PARTICLES = 30
 # 3. Increase iterations for a longer search
-NUM_ITERATIONS = 100000
-NUM_INFORMANTS = 10
+NUM_ITERATIONS = 100
+NUM_INFORMANTS = 6
 # 4. Back to the best-performing loss function
 LOSS_FUNCTION = 'rmse' 
+DISCRETE_PSO = True
 # --- END TUNED PARAMETERS ---
 
 PSO_PARAMS = {
@@ -66,20 +66,19 @@ def main():
     # 2. Load Data
     (X_train, y_train), (X_test, y_test), y_scale_params = \
         data_loader.load_concrete_data("concrete_data.csv")
-    
     y_mean, y_std = y_scale_params
 
     # 3. Create Model "Blueprint"
     model_template = ann.MultiLayerANN(layers=LAYERS)
 
     # 4. Use Bridge to Create PSO-Specific Components
-    initial_particles, particle_length, discrete_params = BRIDGE.initialize_particles(model_template, NUM_PARTICLES)
+    ann_pso_bridge = bridge.Bridge(model_template, discrete = DISCRETE_PSO )
+    initial_particles, particle_length, discrete_params = ann_pso_bridge.initialize_particles(NUM_PARTICLES)
 
-    obj_func = BRIDGE.create_objective_function(
-        model_template, 
+    obj_func = ann_pso_bridge.create_objective_function(
         X_train, 
         y_train, 
-        loss_function_name=LOSS_FUNCTION
+        loss_function_name=LOSS_FUNCTION,
     )
 
     # 5. Initialize and Run Optimizer
@@ -96,7 +95,7 @@ def main():
     
 
     # 6. Run Optimization
-    print(f"Starting PSO optimization using {LOSS_FUNCTION.upper()}...") 
+    print(f"Starting PSO optimization using {LOSS_FUNCTION.upper()}...\n") 
     final_scaled_loss = 0
     for i in range(NUM_ITERATIONS):
         optimizer._update()
@@ -126,71 +125,6 @@ def main():
 
     print("\nOptimization Finished.")
     
-    # ============================================================
-    # SAVE THE OPTIMIZED MODEL
-    # ============================================================
-    
-    print("\n" + "="*60)
-    print("SAVING OPTIMIZED MODEL")
-    print("="*60)
-    
-    # Save the model with all necessary information
-    model_data = model_utils.save_optimized_model(
-        optimizer=optimizer,
-        model_template=model_template,
-        y_scale_params=(y_mean, y_std),
-        pso_params=PSO_PARAMS,
-        num_iterations=NUM_ITERATIONS,
-        loss_function=LOSS_FUNCTION,
-        filename='best_concrete_model.pkl'
-    )
-    
-    # ============================================================
-    # EVALUATE THE SAVED MODEL ON TEST SET
-    # ============================================================
-    
-    print("\n" + "="*60)
-    print("EVALUATING OPTIMIZED MODEL")
-    print("="*60)
-    
-    metrics = model_utils.evaluate_saved_model(
-        model_data=model_data,
-        X_test=X_test,
-        y_test=y_test,
-        ann_module=ann,
-        verbose=True
-    )
-    
-    # Store test metrics in model_data for later
-    model_data['test_rmse'] = metrics['RMSE']
-    model_data['test_mae'] = metrics['MAE']
-    model_data['test_r2'] = metrics['R2']
-    model_data['test_mape'] = metrics['MAPE']
-    
-    # Re-save with test metrics
-    import pickle
-    with open('best_concrete_model.pkl', 'wb') as f:
-        pickle.dump(model_data, f)
-    
-    print("\n✓ Model updated with test metrics")
-    
-    # ============================================================
-    # OPTIONAL: SAVE TRAINING STATISTICS FOR LATER SCALING
-    # ============================================================
-    
-    # Save training data statistics (needed for predicting new samples)
-    train_stats = {
-        'X_mean': X_train.mean(axis=0),
-        'X_std': X_train.std(axis=0),
-        'y_mean': y_mean,
-        'y_std': y_std
-    }
-    
-    with open('training_stats.pkl', 'wb') as f:
-        pickle.dump(train_stats, f)
-    
-    print("✓ Training statistics saved to 'training_stats.pkl'")
-
     # 8. Un-scale final report
     intial_scaled_loss = optimizer.Gbest_value_history[0] # Get the last recorded loss
     final_scaled_loss = optimizer.Gbest_value_history[-1] # Get the last recorded loss
@@ -198,9 +132,8 @@ def main():
     print(f"Final Best Loss (scaled): {final_scaled_loss:.6f}")
     print(f"Final Best Loss (un-scaled): {final_real_loss:.6f}")
 
-
     # 9. Evaluate on Test Set
-    best_params = BRIDGE.reconstruct_params(optimizer.Gbest, model_template)
+    best_params = ann_pso_bridge.reconstruct_params(optimizer.Gbest)
     test_predictions_scaled = model_template.evaluate_with_params(X_test, best_params)
     
     # Un-scale predictions and test values
@@ -211,7 +144,9 @@ def main():
     test_loss_func = loss_functions.get_loss_function(LOSS_FUNCTION)
     test_real_loss = test_loss_func(y_test_real, test_predictions_real)
     
-    print(f"Test Set {LOSS_FUNCTION.upper()} (scaled): {test_real_loss:.6f}")
+    print(f"Test Set {LOSS_FUNCTION.upper()} (scaled): {test_real_loss:.6f}\n")
+    
+    
     
     # Visualizations
     visualizer = v.Visualizer(
@@ -228,8 +163,10 @@ def main():
         test_real_loss = test_real_loss
     )   
     
-    visualizer.record_test()
-    #visualizer.animate_pso_pca()
+    test_folder = visualizer.record_test()
+    model_utils.plot_predictions(y_test_real,test_predictions_real, test_folder = test_folder)
+    #model_utils.save_and_evaluate(optimizer, model_template, ann_pso_bridge, y_mean, y_std, PSO_PARAMS, NUM_ITERATIONS, LOSS_FUNCTION, X_test, y_test)
+
 
 
 if __name__ == "__main__":
