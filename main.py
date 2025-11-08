@@ -3,7 +3,6 @@ import Utility.data_loader as data_loader
 import ANN.ann as ann
 import PSO.pso as pso
 import BRIDGE.bridge as bridge
-# import Utility.ann_pso_bridge as ann_pso_bridge
 import ANN.loss_functions as loss_functions 
 import Utility.visualizer as v
 import Utility.model_utils as model_utils
