@@ -2,73 +2,30 @@ import numpy as np
 import Utility.data_loader as data_loader
 import ANN.ann as ann
 import PSO.pso as pso
-import Utility.ann_pso_bridge as ann_pso_bridge
+import BRIDGE
+# import Utility.ann_pso_bridge as ann_pso_bridge
 import ANN.loss_functions as loss_functions 
 import Utility.visualizer as v
-
-from ANN.architecture_search import ArchitectureSearch
-
-# --- START OF ARCHITECTURE SEARCH ---
-def run_architecture_search():
-    """Run automated architecture search before main PSO optimization."""
-    print("\n" + "="*70)
-    print("RUNNING AUTOMATED ARCHITECTURE SEARCH")
-    print("="*70 + "\n")
-    
-    # Load data
-    (X_train, y_train), (X_test, y_test), y_scale_params = \
-        data_loader.load_concrete_data("concrete_data.csv")
-    
-    # Create searcher
-    searcher = ArchitectureSearch(X_train, y_train, X_test, y_test, y_scale_params)
-    
-    # Run search (adjust parameters as needed)
-    searcher.search(
-        max_layers=3,              # Test up to 3 hidden layers
-        max_neurons=32,            # Max 32 neurons per layer
-        training_iterations=300,   # 300 epochs (faster)
-        test_activations=True      # Test activation combinations
-    )
-    
-    # Print results
-    searcher.print_summary(top_n=10)
-    
-    # Save results
-    searcher.save_results('architecture_search_results.json')
-    searcher.save_csv('architecture_search_results.csv')
-    searcher.plot_results('architecture_comparison.png')
-    
-    # Get best architecture
-    best = searcher.get_best_results(top_n=1)[0]
-    
-    print("\n" + "="*70)
-    print("RECOMMENDED ARCHITECTURE FOR PSO:")
-    print(f"  Layers: {best['architecture']}")
-    print(f"  Activations: {best['activations']}")
-    print(f"  Test RMSE: {best['final_test_rmse_unscaled']:.4f} MPa")
-    print("="*70 + "\n")
-    
-    return best['architecture'], best['activations']
-# --- END OF ARCHITECTURE SEARCH ---
+import Utility.model_utils as model_utils
 
 # --- TUNED PARAMETERS ---
 # 1. Back to the original, best-performing architecture
-LAYERS = [8, 20, 20, 1] 
+LAYERS = [8, 16, 16, 16, 1] 
 # 2. Massively increase particles for a "brute force" search
 NUM_PARTICLES = 100
 # 3. Increase iterations for a longer search
-NUM_ITERATIONS = 10000
+NUM_ITERATIONS = 100000
 NUM_INFORMANTS = 10
 # 4. Back to the best-performing loss function
-LOSS_FUNCTION = 'mse' 
+LOSS_FUNCTION = 'rmse' 
 # --- END TUNED PARAMETERS ---
 
 PSO_PARAMS = {
-    'alpha': 0.729,   
-    'beta': 1.494,    
-    'gamma': 1.494,     
-    'delta': 0.1,   
-    'epsilon': 0.75  
+    'alpha': 0.8,   
+    'beta': 1.2,    
+    'gamma': 1.5,     
+    'delta': 0.5,   
+    'epsilon': 0.8  
 }
 
 PSO_PARAMS_2 = {
@@ -103,7 +60,7 @@ PSO_PARAMS_LOCAL = {
     'epsilon': 1.0     
 }
 
-PSO_PARAMS = PSO_PARAMS_HYBRID
+PSO_PARAMS = PSO_PARAMS
 
 def main():
     # 2. Load Data
@@ -116,9 +73,9 @@ def main():
     model_template = ann.MultiLayerANN(layers=LAYERS)
 
     # 4. Use Bridge to Create PSO-Specific Components
-    initial_particles, particle_length, discrete_params = ann_pso_bridge.initialize_particles(model_template, NUM_PARTICLES)
-    
-    obj_func = ann_pso_bridge.create_objective_function(
+    initial_particles, particle_length, discrete_params = BRIDGE.initialize_particles(model_template, NUM_PARTICLES)
+
+    obj_func = BRIDGE.create_objective_function(
         model_template, 
         X_train, 
         y_train, 
@@ -169,6 +126,71 @@ def main():
 
     print("\nOptimization Finished.")
     
+    # ============================================================
+    # SAVE THE OPTIMIZED MODEL
+    # ============================================================
+    
+    print("\n" + "="*60)
+    print("SAVING OPTIMIZED MODEL")
+    print("="*60)
+    
+    # Save the model with all necessary information
+    model_data = model_utils.save_optimized_model(
+        optimizer=optimizer,
+        model_template=model_template,
+        y_scale_params=(y_mean, y_std),
+        pso_params=PSO_PARAMS,
+        num_iterations=NUM_ITERATIONS,
+        loss_function=LOSS_FUNCTION,
+        filename='best_concrete_model.pkl'
+    )
+    
+    # ============================================================
+    # EVALUATE THE SAVED MODEL ON TEST SET
+    # ============================================================
+    
+    print("\n" + "="*60)
+    print("EVALUATING OPTIMIZED MODEL")
+    print("="*60)
+    
+    metrics = model_utils.evaluate_saved_model(
+        model_data=model_data,
+        X_test=X_test,
+        y_test=y_test,
+        ann_module=ann,
+        verbose=True
+    )
+    
+    # Store test metrics in model_data for later
+    model_data['test_rmse'] = metrics['RMSE']
+    model_data['test_mae'] = metrics['MAE']
+    model_data['test_r2'] = metrics['R2']
+    model_data['test_mape'] = metrics['MAPE']
+    
+    # Re-save with test metrics
+    import pickle
+    with open('best_concrete_model.pkl', 'wb') as f:
+        pickle.dump(model_data, f)
+    
+    print("\n✓ Model updated with test metrics")
+    
+    # ============================================================
+    # OPTIONAL: SAVE TRAINING STATISTICS FOR LATER SCALING
+    # ============================================================
+    
+    # Save training data statistics (needed for predicting new samples)
+    train_stats = {
+        'X_mean': X_train.mean(axis=0),
+        'X_std': X_train.std(axis=0),
+        'y_mean': y_mean,
+        'y_std': y_std
+    }
+    
+    with open('training_stats.pkl', 'wb') as f:
+        pickle.dump(train_stats, f)
+    
+    print("✓ Training statistics saved to 'training_stats.pkl'")
+
     # 8. Un-scale final report
     intial_scaled_loss = optimizer.Gbest_value_history[0] # Get the last recorded loss
     final_scaled_loss = optimizer.Gbest_value_history[-1] # Get the last recorded loss
@@ -178,7 +200,7 @@ def main():
 
 
     # 9. Evaluate on Test Set
-    best_params = ann_pso_bridge.reconstruct_params(optimizer.Gbest, model_template)
+    best_params = BRIDGE.reconstruct_params(optimizer.Gbest, model_template)
     test_predictions_scaled = model_template.evaluate_with_params(X_test, best_params)
     
     # Un-scale predictions and test values
@@ -211,10 +233,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # Uncomment the following lines to run architecture search, but comment main before doing this
-    # best_layers, best_activations = run_architecture_search()
-    # LAYERS = best_layers
-    # print(f"\nUsing discovered architecture: {LAYERS}")
-    # print(f"Using discovered activations: {best_activations}\n")
     main()
 

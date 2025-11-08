@@ -183,10 +183,10 @@ class ParticleSwarm(object):
         self.mean_fitness = np.mean(self.fitness_values_array)
         self.mean_fitness_history.append(self.mean_fitness)
         self.Gbest_value_history.append(self.Gbest_value)
-        self.particle_history.append(self.particle_array.copy())
-        self.velocity_history.append(self.velocity_array.copy())
-        self.fitness_history.append(self.fitness_values_array.copy())
-        self.Gbest_position_history.append(self.Gbest.copy())
+        # self.particle_history.append(self.particle_array.copy())
+        # self.velocity_history.append(self.velocity_array.copy())
+        # self.fitness_history.append(self.fitness_values_array.copy())
+        # self.Gbest_position_history.append(self.Gbest.copy())
         #self.particle_history.append(np.copy(self.particle_array))
         
         
