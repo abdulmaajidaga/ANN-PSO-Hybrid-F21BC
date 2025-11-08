@@ -1,6 +1,7 @@
 """
 Complete ANN Architecture Investigation
 Single file that runs experiments and generates analysis
+(Refactored for clarity and modularity)
 """
 
 import numpy as np
@@ -8,6 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
+import warnings
 
 # Your existing imports
 import Utility.data_loader as data_loader
@@ -29,25 +31,64 @@ BASE_PSO_PARAMS = {
     'delta': 0.1,
     'epsilon': 0.75
 }
-# PSO_PARAMS = {
-#     'alpha': 0.8,   
-#     'beta': 1.2,    
-#     'gamma': 1.5,     
-#     'delta': 0.5,   
-#     'epsilon': 0.8  
-# }
 
 # PSO configuration
 PSO_CONFIG = {
-    'num_particles': 50,        # Adjust based on your computational budget
-    'num_iterations': 500,      # Adjust based on your computational budget
+    'num_particles': 50,
+    'num_iterations': 500,
     'num_informants': 10,
     'loss_function': 'rmse'
 }
 
 # Experiment settings
-NUM_RUNS = 3  # How many times to repeat each configuration
+NUM_RUNS = 10  # How many times to repeat each configuration
 DATASET_PATH = "concrete_data.csv"
+
+# --- NEW: Control which experiments to run ---
+RUN_EXPERIMENT = {
+    'depth': True,
+    'width': True,
+    'shape': True,
+}
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def _count_parameters(layers):
+    """Calculates the total number of weights and biases in the ANN."""
+    return sum(layers[i] * layers[i+1] + layers[i+1] 
+               for i in range(len(layers) - 1))
+
+def _unscale_loss(scaled_loss, y_std, loss_function_name):
+    """Unscales a loss value based on the loss function used."""
+    if loss_function_name == 'mse':
+        return scaled_loss * (y_std ** 2)
+    if loss_function_name in ['rmse', 'mae']:
+        return scaled_loss * y_std
+    return scaled_loss
+
+def _find_convergence_iteration(history, threshold_percent=0.95):
+    """Finds iteration where 95% of total improvement is reached."""
+    if not history or len(history) < 2:
+        return 0
+    
+    initial_loss = history[0]
+    final_loss = history[-1]
+    
+    # Handle no improvement
+    if initial_loss <= final_loss:
+        return 0
+        
+    total_improvement = initial_loss - final_loss
+    threshold = initial_loss - (total_improvement * threshold_percent)
+    
+    for i, loss in enumerate(history):
+        if loss <= threshold:
+            return i
+            
+    return len(history) - 1  # Reached the end
 
 
 # ============================================================================
@@ -95,23 +136,17 @@ def run_single_experiment(architecture, X_train, y_train, X_test, y_test, y_scal
         
         if (i + 1) % 100 == 0:
             scaled_loss = optimizer.Gbest_value
-            real_loss = scaled_loss * y_std if PSO_CONFIG['loss_function'] in ['rmse', 'mae'] else scaled_loss * (y_std ** 2)
-            print(f"  Iter {i+1}: Loss = {real_loss:.6f}")
+            # Use helper function
+            real_loss = _unscale_loss(scaled_loss, y_std, PSO_CONFIG['loss_function'])
+            print(f"   Iter {i+1}: Loss = {real_loss:.6f}")
     
     # Get results
     initial_loss_scaled = optimizer.Gbest_value_history[0]
     final_loss_scaled = optimizer.Gbest_value_history[-1]
     
-    # Unscale losses
-    if PSO_CONFIG['loss_function'] == 'mse':
-        initial_loss = initial_loss_scaled * (y_std ** 2)
-        final_loss = final_loss_scaled * (y_std ** 2)
-    elif PSO_CONFIG['loss_function'] in ['rmse', 'mae']:
-        initial_loss = initial_loss_scaled * y_std
-        final_loss = final_loss_scaled * y_std
-    else:
-        initial_loss = initial_loss_scaled
-        final_loss = final_loss_scaled
+    # Unscale losses using helper function
+    initial_loss = _unscale_loss(initial_loss_scaled, y_std, PSO_CONFIG['loss_function'])
+    final_loss = _unscale_loss(final_loss_scaled, y_std, PSO_CONFIG['loss_function'])
     
     # Test set evaluation
     best_params = reconstruct_params(optimizer.Gbest, model)
@@ -122,18 +157,17 @@ def run_single_experiment(architecture, X_train, y_train, X_test, y_test, y_scal
     test_loss_func = loss_functions.get_loss_function(PSO_CONFIG['loss_function'])
     test_loss = test_loss_func(y_test_real, test_predictions_real)
     
-    # Count parameters
-    total_params = sum(architecture['layers'][i] * architecture['layers'][i+1] + architecture['layers'][i+1] 
-                      for i in range(len(architecture['layers']) - 1))
+    # Count parameters using helper function
+    total_params = _count_parameters(architecture['layers'])
     
-    # Find convergence iteration (when reaches 95% of final improvement)
-    convergence_iteration = 0
-    threshold = initial_loss_scaled - (initial_loss_scaled - final_loss_scaled) * 0.95
-    for i, loss in enumerate(optimizer.Gbest_value_history):
-        if loss <= threshold:
-            convergence_iteration = i
-            break
+    # Find convergence iteration using helper function
+    convergence_iteration = _find_convergence_iteration(optimizer.Gbest_value_history)
     
+    # Calculate improvement percentage
+    improvement_percent = 0.0
+    if initial_loss > 0: # Avoid division by zero
+        improvement_percent = ((initial_loss - final_loss) / initial_loss) * 100
+
     return {
         'run_id': run_id,
         'layers': str(architecture['layers']),
@@ -142,24 +176,22 @@ def run_single_experiment(architecture, X_train, y_train, X_test, y_test, y_scal
         'initial_train_loss': initial_loss,
         'final_train_loss': final_loss,
         'test_loss': test_loss,
-        'improvement_percent': ((initial_loss - final_loss) / initial_loss) * 100,
+        'improvement_percent': improvement_percent,
         'convergence_iteration': convergence_iteration,
         'generalization_gap': test_loss - final_loss,
     }
 
-
 # ============================================================================
-# EXPERIMENTS
+# EXPERIMENT DEFINITIONS
+# (These functions now *define* experiments, they don't run them)
 # ============================================================================
 
-def experiment_depth(X_train, y_train, X_test, y_test, y_scale_params, results):
-    """Experiment 1: Effect of network depth"""
-    print("\n" + "="*70)
-    print("EXPERIMENT 1: Effect of Network Depth")
-    print("="*70)
-    
+def _define_depth_architectures():
+    """Returns configuration for Experiment 1: Effect of network depth"""
+    print("...Defining Depth Experiment Architectures")
     base_width = 16
     depths = [2, 3, 4, 5]
+    architectures = []
     
     for depth in depths:
         if depth == 2:
@@ -167,242 +199,254 @@ def experiment_depth(X_train, y_train, X_test, y_test, y_scale_params, results):
         else:
             layers = [8] + [base_width] * (depth - 2) + [1]
         
-        architecture = {'layers': layers}
-        
-        for run in range(NUM_RUNS):
-            result = run_single_experiment(architecture, X_train, y_train, X_test, y_test, y_scale_params, run)
-            result['experiment'] = 'depth'
-            result['depth'] = depth
-            results.append(result)
+        architectures.append({
+            'layers': layers,
+            'depth': depth
+        })
+    return architectures
 
-
-def experiment_width(X_train, y_train, X_test, y_test, y_scale_params, results):
-    """Experiment 2: Effect of network width"""
-    print("\n" + "="*70)
-    print("EXPERIMENT 2: Effect of Network Width")
-    print("="*70)
-    
+def _define_width_architectures():
+    """Returns configuration for Experiment 2: Effect of network width"""
+    print("...Defining Width Experiment Architectures")
     num_hidden_layers = 2
     widths = [4, 8, 16, 32, 64]
+    architectures = []
     
     for width in widths:
         layers = [8] + [width] * num_hidden_layers + [1]
-        architecture = {'layers': layers}
-        
-        for run in range(NUM_RUNS):
-            result = run_single_experiment(architecture, X_train, y_train, X_test, y_test, y_scale_params, run)
-            result['experiment'] = 'width'
-            result['width'] = width
-            results.append(result)
+        architectures.append({
+            'layers': layers,
+            'width': width
+        })
+    return architectures
 
-
-def experiment_shapes(X_train, y_train, X_test, y_test, y_scale_params, results):
-    """Experiment 3: Effect of architecture shape"""
-    print("\n" + "="*70)
-    print("EXPERIMENT 3: Effect of Architecture Shape")
-    print("="*70)
-    
-    architectures = [
+def _define_shape_architectures():
+    """Returns configuration for Experiment 3: Effect of architecture shape"""
+    print("...Defining Shape Experiment Architectures")
+    shape_configs = [
         {'name': 'pyramid_expanding', 'layers': [8, 16, 32, 64, 1]},
         {'name': 'pyramid_contracting', 'layers': [8, 64, 32, 16, 1]},
         {'name': 'diamond', 'layers': [8, 16, 32, 16, 1]},
         {'name': 'rectangle', 'layers': [8, 16, 16, 16, 1]},
         {'name': 'bottleneck', 'layers': [8, 32, 8, 32, 1]},
     ]
+    # Convert to the format expected by the runner
+    return [{'layers': arch['layers'], 'shape': arch['name']} for arch in shape_configs]
+
+
+def _run_experiment_set(experiment_name, architectures, data_inputs):
+    """
+    NEW: This generic helper function runs a set of experiments,
+    handling all the repetitive looping and result metadata tagging.
+    """
+    print(f"\n{'='*70}\nRUNNING EXPERIMENT: {experiment_name.upper()}\n{'='*70}")
     
-    for arch in architectures:
-        architecture = {'layers': arch['layers']}
+    (X_train, y_train), (X_test, y_test), y_scale_params = data_inputs
+    results_list = []
+    
+    for arch_info in architectures:
+        architecture = {'layers': arch_info['layers']}
         
         for run in range(NUM_RUNS):
-            result = run_single_experiment(architecture, X_train, y_train, X_test, y_test, y_scale_params, run)
-            result['experiment'] = 'shape'
-            result['shape'] = arch['name']
-            results.append(result)
+            result = run_single_experiment(
+                architecture, 
+                X_train, y_train, X_test, y_test, 
+                y_scale_params, 
+                run
+            )
+            
+            # Add all extra metadata (e.g., 'depth', 'width', 'shape')
+            # We copy and remove 'layers' to avoid the unhashable list error
+            metadata = arch_info.copy()
+            metadata.pop('layers', None)
+            
+            result.update(metadata)
+            result['experiment'] = experiment_name
+            results_list.append(result)
+            
+    return results_list
 
 
 # ============================================================================
-# ANALYSIS AND VISUALIZATION
+# ANALYSIS AND VISUALIZATION (Refactored)
 # ============================================================================
+
+def _plot_depth_analysis(depth_df):
+    """Analyzes and plots results for the depth experiment."""
+    print("\n--- Depth Analysis ---")
+    summary = depth_df.groupby('depth').agg({
+        'final_train_loss': ['mean', 'std'],
+        'test_loss': ['mean', 'std'],
+        'convergence_iteration': 'mean',
+        'total_params': 'first'
+    }).round(4)
+    print(summary)
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig.suptitle('Effect of Network Depth', fontsize=16, fontweight='bold')
+    
+    # Plot 1: Training vs Test Loss (Using Seaborn)
+    df_melt = depth_df.groupby('depth').agg(
+        Training_Loss=('final_train_loss', 'mean'),
+        Test_Loss=('test_loss', 'mean')
+    ).reset_index().melt('depth', var_name='Loss Type', value_name='Loss')
+    
+    sns.barplot(data=df_melt, x='depth', y='Loss', hue='Loss Type', ax=axes[0, 0])
+    axes[0, 0].set_title('Training vs Test Loss by Depth')
+    axes[0, 0].set_xlabel('Number of Layers')
+    axes[0, 0].set_ylabel('Loss (RMSE)')
+    
+    # Plot 2: Box plot (Using Seaborn)
+    sns.barplot(data=depth_df, x='depth', y='test_loss', ax=axes[0, 1], estimator=np.mean, color='skyblue')
+    axes[0, 1].set_title('Mean Test Loss by Depth')
+    axes[0, 1].set_xlabel('Number of Layers')
+    axes[0, 1].set_ylabel('Mean Test Loss (RMSE)')
+    
+    # Plot 3: Convergence speed
+    sns.barplot(data=depth_df, x='depth', y='convergence_iteration', ax=axes[1, 0], color='coral', estimator=np.mean)
+    axes[1, 0].set_title('Convergence Speed by Depth')
+    axes[1, 0].set_xlabel('Number of Layers')
+    axes[1, 0].set_ylabel('Iterations to 95% Convergence')
+    
+    # Plot 4: Parameters vs Performance
+    param_perf = depth_df.groupby('depth').agg(
+        total_params=('total_params', 'first'),
+        test_loss=('test_loss', 'mean')
+    ).reset_index()
+    
+    sns.scatterplot(data=param_perf, x='total_params', y='test_loss', s=100, ax=axes[1, 1])
+    for _, row in param_perf.iterrows():
+        axes[1, 1].annotate(f"{int(row['depth'])} layers", 
+                          (row['total_params'], row['test_loss']),
+                          xytext=(5, 5), textcoords='offset points')
+    axes[1, 1].set_xlabel('Total Parameters')
+    axes[1, 1].set_ylabel('Mean Test Loss')
+    axes[1, 1].set_title('Model Complexity vs Performance')
+    
+    plt.tight_layout()
+    plt.savefig('depth_analysis.png', dpi=300, bbox_inches='tight')
+    print("✓ Depth analysis saved as 'depth_analysis.png'")
+    plt.show()
+
+def _plot_width_analysis(width_df):
+    """Analyzes and plots results for the width experiment."""
+    print("\n--- Width Analysis ---")
+    summary = width_df.groupby('width').agg({
+        'final_train_loss': ['mean', 'std'],
+        'test_loss': ['mean', 'std'],
+        'total_params': 'first'
+    }).round(4)
+    print(summary)
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig.suptitle('Effect of Network Width', fontsize=16, fontweight='bold')
+    
+    # Plot 1: Performance by width
+    df_melt = width_df.groupby('width').agg(
+        Training_Loss=('final_train_loss', 'mean'),
+        Test_Loss=('test_loss', 'mean')
+    ).reset_index().melt('width', var_name='Loss Type', value_name='Loss')
+    
+    sns.lineplot(data=df_melt, x='width', y='Loss', hue='Loss Type', marker='o', ax=axes[0, 0])
+    axes[0, 0].set_title('Performance by Network Width')
+    axes[0, 0].set_xlabel('Neurons per Hidden Layer')
+    axes[0, 0].set_ylabel('Loss (RMSE)')
+    axes[0, 0].grid(True)
+    
+    # Plot 2: Generalization gap (Using Seaborn)
+    width_df['gen_gap'] = width_df['test_loss'] - width_df['final_train_loss']
+    sns.barplot(data=width_df, x='width', y='gen_gap', ax=axes[0, 1], color='salmon', estimator=np.mean)
+    axes[0, 1].set_title('Generalization Gap by Width')
+    axes[0, 1].set_xlabel('Neurons per Hidden Layer')
+    axes[0, 1].set_ylabel('Test Loss - Train Loss')
+    axes[0, 1].axhline(y=0, color='r', linestyle='--', alpha=0.3)
+    
+    # Plot 3: Violin plot
+    sns.barplot(data=width_df, x='width', y='test_loss', ax=axes[1, 0], estimator=np.mean, color='skyblue')
+    axes[1, 0].set_title('Mean Test Loss by Width')
+    axes[1, 0].set_xlabel('Neurons per Hidden Layer')
+    axes[1, 0].set_ylabel('Mean Test Loss (RMSE)')
+    
+    # Plot 4: Parameters vs performance
+    param_summary = width_df.groupby('width').agg(
+        total_params=('total_params', 'first'),
+        test_loss_mean=('test_loss', 'mean'),
+        test_loss_std=('test_loss', 'std')
+    ).reset_index()
+
+    axes[1, 1].errorbar(param_summary['total_params'], 
+                       param_summary['test_loss_mean'],
+                       yerr=param_summary['test_loss_std'],
+                       fmt='-o', capsize=5, linewidth=2) # Use fmt='-o' for line + marker
+    axes[1, 1].set_xlabel('Total Parameters')
+    axes[1, 1].set_ylabel('Mean Test Loss')
+    axes[1, 1].set_title('Complexity vs Performance Trade-off')
+    axes[1, 1].grid(True)
+    
+    plt.tight_layout()
+    plt.savefig('width_analysis.png', dpi=300, bbox_inches='tight')
+    print("✓ Width analysis saved as 'width_analysis.png'")
+    plt.show()
+
+def _plot_shape_analysis(shape_df):
+    """Analyzes and plots results for the shape experiment."""
+    print("\n--- Shape Analysis ---")
+    summary = shape_df.groupby('shape').agg({
+        'test_loss': ['mean', 'std'],
+        'convergence_iteration': 'mean',
+        'layers': 'first'
+    }).round(4)
+    print(summary)
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    fig.suptitle('Effect of Architecture Shape', fontsize=16, fontweight='bold')
+    
+    # Plot 1: Performance comparison (Using Seaborn)
+    sns.barplot(data=shape_df, y='shape', x='test_loss', ax=axes[0], color='skyblue', estimator=np.mean)
+    axes[0].set_title('Performance by Architecture Shape')
+    axes[0].set_xlabel('Test Loss (RMSE)')
+    axes[0].set_ylabel('Architecture Shape')
+    
+    # Plot 2: Convergence comparison (Using Seaborn)
+    sns.barplot(data=shape_df, y='shape', x='convergence_iteration', ax=axes[1], color='lightcoral', estimator=np.mean)
+    axes[1].set_title('Convergence Speed by Shape')
+    axes[1].set_xlabel('Iterations to 95% Convergence')
+    axes[1].set_ylabel('Architecture Shape')
+    
+    plt.tight_layout()
+    plt.savefig('shape_analysis.png', dpi=300, bbox_inches='tight')
+    print("✓ Shape analysis saved as 'shape_analysis.png'")
+    plt.show()
+
 
 def analyze_and_plot(results_df):
-    """Analyze results and create visualizations"""
-    
+    """
+    Main analysis dispatcher.
+    Calls specific plotting functions based on experiments found in results.
+    """
     print("\n" + "="*70)
     print("ANALYSIS AND VISUALIZATION")
     print("="*70)
     
     sns.set_style("whitegrid")
     
-    # ---- DEPTH ANALYSIS ----
-    if 'depth' in results_df['experiment'].values:
-        print("\n--- Depth Analysis ---")
-        depth_df = results_df[results_df['experiment'] == 'depth']
+    # Suppress warnings from seaborn when data has no variance
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
         
-        summary = depth_df.groupby('depth').agg({
-            'final_train_loss': ['mean', 'std'],
-            'test_loss': ['mean', 'std'],
-            'convergence_iteration': 'mean',
-            'total_params': 'first'
-        }).round(4)
-        print(summary)
+        if 'depth' in results_df['experiment'].values:
+            _plot_depth_analysis(results_df[results_df['experiment'] == 'depth'])
         
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-        fig.suptitle('Effect of Network Depth', fontsize=16, fontweight='bold')
+        if 'width' in results_df['experiment'].values:
+            _plot_width_analysis(results_df[results_df['experiment'] == 'width'])
         
-        # Plot 1: Training vs Test Loss
-        ax1 = axes[0, 0]
-        depth_summary = depth_df.groupby('depth').agg({
-            'final_train_loss': 'mean',
-            'test_loss': 'mean'
-        })
-        depth_summary.plot(kind='bar', ax=ax1)
-        ax1.set_title('Training vs Test Loss by Depth')
-        ax1.set_xlabel('Number of Layers')
-        ax1.set_ylabel('Loss (RMSE)')
-        ax1.legend(['Training Loss', 'Test Loss'])
-        ax1.tick_params(axis='x', rotation=0)
-        
-        # Plot 2: Box plot
-        ax2 = axes[0, 1]
-        depth_df.boxplot(column='test_loss', by='depth', ax=ax2)
-        ax2.set_title('Test Loss Distribution by Depth')
-        ax2.set_xlabel('Number of Layers')
-        ax2.set_ylabel('Test Loss (RMSE)')
-        plt.sca(ax2)
-        plt.xticks(rotation=0)
-        
-        # Plot 3: Convergence speed
-        ax3 = axes[1, 0]
-        conv_summary = depth_df.groupby('depth')['convergence_iteration'].mean()
-        conv_summary.plot(kind='bar', ax=ax3, color='coral')
-        ax3.set_title('Convergence Speed by Depth')
-        ax3.set_xlabel('Number of Layers')
-        ax3.set_ylabel('Iterations to 95% Convergence')
-        ax3.tick_params(axis='x', rotation=0)
-        
-        # Plot 4: Parameters vs Performance
-        ax4 = axes[1, 1]
-        param_perf = depth_df.groupby('depth').agg({
-            'total_params': 'first',
-            'test_loss': 'mean'
-        })
-        ax4.scatter(param_perf['total_params'], param_perf['test_loss'], s=100)
-        for idx, row in param_perf.iterrows():
-            ax4.annotate(f'{idx} layers', 
-                        (row['total_params'], row['test_loss']),
-                        xytext=(5, 5), textcoords='offset points')
-        ax4.set_xlabel('Total Parameters')
-        ax4.set_ylabel('Mean Test Loss')
-        ax4.set_title('Model Complexity vs Performance')
-        
-        plt.tight_layout()
-        plt.savefig('depth_analysis.png', dpi=300, bbox_inches='tight')
-        print("✓ Depth analysis saved as 'depth_analysis.png'")
-        plt.show()
-    
-    # ---- WIDTH ANALYSIS ----
-    if 'width' in results_df['experiment'].values:
-        print("\n--- Width Analysis ---")
-        width_df = results_df[results_df['experiment'] == 'width']
-        
-        summary = width_df.groupby('width').agg({
-            'final_train_loss': ['mean', 'std'],
-            'test_loss': ['mean', 'std'],
-            'total_params': 'first'
-        }).round(4)
-        print(summary)
-        
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-        fig.suptitle('Effect of Network Width', fontsize=16, fontweight='bold')
-        
-        # Plot 1: Performance by width
-        ax1 = axes[0, 0]
-        width_summary = width_df.groupby('width').agg({
-            'final_train_loss': 'mean',
-            'test_loss': 'mean'
-        })
-        width_summary.plot(kind='line', marker='o', ax=ax1)
-        ax1.set_title('Performance by Network Width')
-        ax1.set_xlabel('Neurons per Hidden Layer')
-        ax1.set_ylabel('Loss (RMSE)')
-        ax1.legend(['Training Loss', 'Test Loss'])
-        ax1.grid(True)
-        
-        # Plot 2: Generalization gap
-        ax2 = axes[0, 1]
-        width_df['gen_gap'] = width_df['test_loss'] - width_df['final_train_loss']
-        gap_summary = width_df.groupby('width')['gen_gap'].mean()
-        gap_summary.plot(kind='bar', ax=ax2, color='salmon')
-        ax2.set_title('Generalization Gap by Width')
-        ax2.set_xlabel('Neurons per Hidden Layer')
-        ax2.set_ylabel('Test Loss - Train Loss')
-        ax2.axhline(y=0, color='r', linestyle='--', alpha=0.3)
-        ax2.tick_params(axis='x', rotation=0)
-        
-        # Plot 3: Violin plot
-        ax3 = axes[1, 0]
-        sns.violinplot(data=width_df, x='width', y='test_loss', ax=ax3)
-        ax3.set_title('Test Loss Distribution by Width')
-        ax3.set_xlabel('Neurons per Hidden Layer')
-        ax3.set_ylabel('Test Loss (RMSE)')
-        
-        # Plot 4: Parameters vs performance
-        ax4 = axes[1, 1]
-        param_summary = width_df.groupby('width').agg({
-            'total_params': 'first',
-            'test_loss': ['mean', 'std']
-        })
-        ax4.errorbar(param_summary['total_params']['first'], 
-                    param_summary['test_loss']['mean'],
-                    yerr=param_summary['test_loss']['std'],
-                    marker='o', capsize=5, linewidth=2)
-        ax4.set_xlabel('Total Parameters')
-        ax4.set_ylabel('Mean Test Loss')
-        ax4.set_title('Complexity vs Performance Trade-off')
-        ax4.grid(True)
-        
-        plt.tight_layout()
-        plt.savefig('width_analysis.png', dpi=300, bbox_inches='tight')
-        print("✓ Width analysis saved as 'width_analysis.png'")
-        plt.show()
-    
-    # ---- SHAPE ANALYSIS ----
-    if 'shape' in results_df['experiment'].values:
-        print("\n--- Shape Analysis ---")
-        shape_df = results_df[results_df['experiment'] == 'shape']
-        
-        summary = shape_df.groupby('shape').agg({
-            'test_loss': ['mean', 'std'],
-            'convergence_iteration': 'mean',
-            'layers': 'first'
-        }).round(4)
-        print(summary)
-        
-        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-        fig.suptitle('Effect of Architecture Shape', fontsize=16, fontweight='bold')
-        
-        # Plot 1: Performance comparison
-        ax1 = axes[0]
-        shape_summary = shape_df.groupby('shape')['test_loss'].agg(['mean', 'std'])
-        shape_summary['mean'].plot(kind='barh', xerr=shape_summary['std'], 
-                                   ax=ax1, color='skyblue')
-        ax1.set_title('Performance by Architecture Shape')
-        ax1.set_xlabel('Test Loss (RMSE)')
-        ax1.set_ylabel('Architecture Shape')
-        
-        # Plot 2: Convergence comparison
-        ax2 = axes[1]
-        conv_summary = shape_df.groupby('shape')['convergence_iteration'].mean()
-        conv_summary.plot(kind='barh', ax=ax2, color='lightcoral')
-        ax2.set_title('Convergence Speed by Shape')
-        ax2.set_xlabel('Iterations to 95% Convergence')
-        ax2.set_ylabel('Architecture Shape')
-        
-        plt.tight_layout()
-        plt.savefig('shape_analysis.png', dpi=300, bbox_inches='tight')
-        print("✓ Shape analysis saved as 'shape_analysis.png'")
-        plt.show()
+        if 'shape' in results_df['experiment'].values:
+            _plot_shape_analysis(results_df[results_df['experiment'] == 'shape'])
 
+
+# ============================================================================
+# REPORT GENERATOR
+# ============================================================================
 
 def generate_report(results_df):
     """Generate text report"""
@@ -427,8 +471,9 @@ def generate_report(results_df):
         # Top 5 architectures
         f.write("TOP 5 ARCHITECTURES\n")
         f.write("-"*70 + "\n")
-        top5 = results_df.nsmallest(5, 'test_loss')[['layers', 'test_loss', 
-                                                      'total_params', 'convergence_iteration']]
+        top5 = results_df.nsmallest(5, 'test_loss')[[
+            'layers', 'test_loss', 'total_params', 'convergence_iteration'
+        ]]
         f.write(top5.to_string(index=False) + "\n\n")
         
         # Findings per experiment
@@ -436,13 +481,14 @@ def generate_report(results_df):
             f.write(f"\n{exp.upper()} EXPERIMENT\n")
             f.write("-"*70 + "\n")
             exp_df = results_df[results_df['experiment'] == exp]
+            # Use .describe() for a quick numerical summary
             f.write(exp_df.describe().to_string() + "\n\n")
     
     print("\n✓ Report saved as 'architecture_report.txt'")
 
 
 # ============================================================================
-# MAIN EXECUTION
+# MAIN EXECUTION (Refactored)
 # ============================================================================
 
 def main():
@@ -450,27 +496,42 @@ def main():
     print("ANN ARCHITECTURE INVESTIGATION")
     print("="*70)
     print(f"\nConfiguration:")
-    print(f"  Dataset: {DATASET_PATH}")
-    print(f"  Particles: {PSO_CONFIG['num_particles']}")
-    print(f"  Iterations: {PSO_CONFIG['num_iterations']}")
-    print(f"  Runs per config: {NUM_RUNS}")
-    print(f"  Loss function: {PSO_CONFIG['loss_function']}")
+    print(f"   Dataset: {DATASET_PATH}")
+    print(f"   Particles: {PSO_CONFIG['num_particles']}")
+    print(f"   Iterations: {PSO_CONFIG['num_iterations']}")
+    print(f"   Runs per config: {NUM_RUNS}")
+    print(f"   Loss function: {PSO_CONFIG['loss_function']}")
     
     # Load data
     print("\nLoading data...")
-    (X_train, y_train), (X_test, y_test), y_scale_params = \
-        data_loader.load_concrete_data(DATASET_PATH)
+    # data_inputs is a tuple: ((X_train, y_train), (X_test, y_test), y_scale_params)
+    data_inputs = data_loader.load_concrete_data(DATASET_PATH)
     
     # Run experiments
-    results = []
+    all_results = []
+    generated_files = ['architecture_results.csv', 'architecture_report.txt']
     
-    # Choose which experiments to run (comment out if you don't want to run)
-    experiment_depth(X_train, y_train, X_test, y_test, y_scale_params, results)
-    experiment_width(X_train, y_train, X_test, y_test, y_scale_params, results)
-    experiment_shapes(X_train, y_train, X_test, y_test, y_scale_params, results)
+    if RUN_EXPERIMENT['depth']:
+        depth_archs = _define_depth_architectures()
+        all_results.extend(_run_experiment_set('depth', depth_archs, data_inputs))
+        generated_files.append('depth_analysis.png')
     
+    if RUN_EXPERIMENT['width']:
+        width_archs = _define_width_architectures()
+        all_results.extend(_run_experiment_set('width', width_archs, data_inputs))
+        generated_files.append('width_analysis.png')
+        
+    if RUN_EXPERIMENT['shape']:
+        shape_archs = _define_shape_architectures()
+        all_results.extend(_run_experiment_set('shape', shape_archs, data_inputs))
+        generated_files.append('shape_analysis.png')
+
+    if not all_results:
+        print("\nNo experiments were selected to run. Exiting.")
+        return
+
     # Convert to DataFrame
-    results_df = pd.DataFrame(results)
+    results_df = pd.DataFrame(all_results)
     
     # Save raw results
     results_df.to_csv('architecture_results.csv', index=False)
@@ -486,11 +547,8 @@ def main():
     print("INVESTIGATION COMPLETE!")
     print("="*70)
     print("\nGenerated files:")
-    print("  - architecture_results.csv (raw data)")
-    print("  - architecture_report.txt (summary)")
-    print("  - depth_analysis.png (if depth experiment was run)")
-    print("  - width_analysis.png (if width experiment was run)")
-    print("  - shape_analysis.png (if shape experiment was run)")
+    for f in sorted(generated_files):
+        print(f"   - {f}")
 
 
 if __name__ == "__main__":
