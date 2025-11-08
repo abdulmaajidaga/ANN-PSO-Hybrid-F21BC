@@ -52,42 +52,7 @@ class Visualizer:
 
     # -------------------------------------------------------------
     # PLOTS — Saved instead of shown
-    # -------------------------------------------------------------
-
-    def animate_pso_pca(self):
-        """Animate particle swarm movement projected to 2D via PCA."""
-        all_particles = np.vstack(self.pso.particle_history)
-        pca = PCA(n_components=2)
-        pca.fit(all_particles)
-
-        # Compute bounds dynamically
-        proj_all = pca.transform(all_particles)
-        x_min, x_max = proj_all[:, 0].min(), proj_all[:, 0].max()
-        y_min, y_max = proj_all[:, 1].min(), proj_all[:, 1].max()
-
-        fig, ax = plt.subplots(figsize=(6, 6))
-        scat = ax.scatter([], [], c="blue", alpha=0.6)
-        gb_point, = ax.plot([], [], "r*", markersize=12, label="Global Best")
-
-        def init():
-            ax.set_xlim(x_min, x_max)
-            ax.set_ylim(y_min, y_max)
-            ax.set_title("PSO Swarm Dynamics (PCA Projection)")
-            return scat, gb_point
-
-        def update(frame):
-            particles = pca.transform(self.particle_history[frame])
-            gbest = pca.transform(self.Gbest_position_history[frame].reshape(1, -1))
-            scat.set_offsets(particles)
-            gb_point.set_data(gbest[0, 0], gbest[0, 1])
-            ax.set_title(f"Iteration {frame + 1}")
-            return scat, gb_point
-
-        ani = FuncAnimation(fig, update, frames=len(self.pso.particle_history),
-                            init_func=init, blit=False, repeat=False)
-        plt.legend()
-        plt.show()
-        
+    # -------------------------------------------------------------     
         
     def animate_pso_pca_gif(self, filename="_pso_animation.gif", fps=25):
         """Generate and save a GIF animation of particle swarm movement (PCA projection)."""
@@ -240,9 +205,10 @@ class Visualizer:
 
         # --- Write parameters file ---
         self._write_params_file()
-        
         self.plot_fitness_convergence()
         self.plot_mean_position_convergence()
         self.plot_swarm_diversity()
         self.plot_velocity_magnitude()
         self.animate_pso_pca_gif()
+        
+        return self.test_dir

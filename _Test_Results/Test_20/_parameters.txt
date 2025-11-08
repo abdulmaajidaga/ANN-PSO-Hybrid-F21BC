@@ -1,0 +1,23 @@
+# PSO–ANN Test Configuration
+
+**Layers:** [8, 16, 16, 16, 1]
+**Num Particles:** 30
+**Num Iterations:** 100
+**Num Informants:** 6
+**Loss Function:** mse
+
+## PSO Parameters
+- alpha: 0.8
+
+- beta: 1.2
+
+- gamma: 1.5
+
+- delta: 0.5
+
+- epsilon: 0.8
+
+Initial Best Loss (un-scaled): 0.982404
+Final Best Loss (un-scaled): 0.284873
+Final Best Loss (scaled): 89.428019
+Test Set Loss (scaled): 105.484523

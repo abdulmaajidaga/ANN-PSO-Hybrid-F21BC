@@ -18,7 +18,7 @@ def main():
     # STEP 1: LOAD THE SAVED MODEL
     # ============================================================
     
-    model_data = model_utils.load_optimized_model('best_concrete_model_100000.pkl')
+    model_data = model_utils.load_optimized_model('model.pkl')
     
     # ============================================================
     # STEP 2: LOAD TEST DATA
@@ -38,7 +38,6 @@ def main():
         model_data=model_data,
         X_test=X_test,
         y_test=y_test,
-        ann_module=ann,
         verbose=True
     )
     
@@ -64,7 +63,6 @@ def main():
     import matplotlib.pyplot as plt
     
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
     # Plot 1: Predictions vs Actual
     ax1 = axes[0]
     ax1.scatter(metrics['actual_real'], metrics['predictions_real'], alpha=0.5)
