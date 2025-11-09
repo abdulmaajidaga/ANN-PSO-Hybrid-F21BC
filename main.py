@@ -146,8 +146,6 @@ def main():
     
     print(f"Test Set {LOSS_FUNCTION.upper()} (scaled): {test_real_loss:.6f}\n")
     
-    
-    
     # Visualizations
     visualizer = v.Visualizer(
         pso=optimizer,
