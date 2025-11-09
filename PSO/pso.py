@@ -3,8 +3,8 @@ import numpy as np
 
 
 class ParticleSwarm(object):
-    def  __init__(self, num_particles, num_informants, num_iterations,  objective_function,  particle_length, discrete_params = None,
-                 alpha = 0.729, beta = 1.494, gamma = 1.0, delta = 1.494, epsilon = 0.15, particles = None, v_max_scale = 0.2):
+    def  __init__(self, num_particles, num_informants,  objective_function,  particle_length, discrete_params = None,
+                 alpha = 0.729, beta = 1.494, gamma = 1.0, delta = 1.494, epsilon = 0.15, particles = None, v_max_scale = 1.5):
         
         self.num_particles = num_particles # Number of particles in the swarm (swarm size)
         self.objective_function = objective_function # Objective function to be minimized
@@ -18,8 +18,11 @@ class ParticleSwarm(object):
         self.epsilon = epsilon # ε (epsilon): jump size or step size of a particle 
         
         # Visualization variables created by chatGPT
+        self.mean_fitness = 0
+        self.std_fitness = 0
         self.Gbest_value_history = []
         self.mean_fitness_history = []
+        self.std_fitness_history = []
         self.particle_history = []
         self.velocity_history = []
         self.fitness_history = []
@@ -34,11 +37,15 @@ class ParticleSwarm(object):
         # For example, particle_array[0] has a velocity of velocity_array[0]
         self.velocity_array = np.random.rand(num_particles, self.particle_length) # Stores particle velocities at each particle index
         
+        # Reference -> Improved Particle Swarm Optimization Based on Velocity Clamping and Particle Penalization
         # --- MODIFICATION 1: Velocity Clamping Method ---
-        # p_min = self.particle_array.min()
-        # p_max = self.particle_array.max()
-        # self.v_max = (p_max - p_min) * v_max_scale
-        # self.v_min = -self.v_max
+        max = self.particle_array.max()
+        min = self.particle_array.min()
+        print(min, max)
+        self.p_max = np.full_like(self.velocity_array, max * 1000) 
+        self.p_min = np.full_like(self.velocity_array, min * 1000)
+        self.v_max = (max - min) * v_max_scale
+        self.v_min = -self.v_max
         # --- END MODIFICATION 1 ---
 
         # Stores personal best positions for each particle in the matching index
@@ -145,9 +152,12 @@ class ParticleSwarm(object):
                        global_social_component_array * (self.Gbest - self.particle_array)
         
         # --- MODIFICATION 1: Velocity Clamping Method ---
-        #self.velocity_array = np.clip(new_velocity, self.v_min, self.v_max)
-        
+        self.velocity_array = np.clip(self.velocity_array, self.v_min, self.v_max)
         self.particle_array = self.particle_array + self.epsilon * self.velocity_array
+        # Apply penalty to particle positions that are out of bounds
+        penalty_mask = (self.particle_array > self.p_max) | (self.particle_array < self.p_min)
+        self.velocity_array[penalty_mask] = 0
+        self.particle_array[penalty_mask] = -self.particle_array[penalty_mask]
         
         # Check whether the current PSO implementation has discrete variables
         if self.discrete_params is not None:
@@ -170,13 +180,14 @@ class ParticleSwarm(object):
         
         # --- Record for visualization --- genereated by chatgpt
         self.mean_fitness = np.mean(self.fitness_values_array)
+        self.std_fitness = np.std(self.fitness_values_array)  
         self.mean_fitness_history.append(self.mean_fitness)
+        self.std_fitness_history.append(self.std_fitness) 
         self.Gbest_value_history.append(self.Gbest_value)
         self.particle_history.append(self.particle_array.copy())
         self.velocity_history.append(self.velocity_array.copy())
         self.fitness_history.append(self.fitness_values_array.copy())
         self.Gbest_position_history.append(self.Gbest.copy())
-        self.particle_history.append(np.copy(self.particle_array))
         
         
     

@@ -97,61 +97,88 @@ class Visualizer:
 
         plt.close(fig)
 
-
-    def plot_fitness_convergence(self):
-        """Plot and save global best and mean fitness convergence."""
+    def plot_gbest_convergence(self):
+        """Plot and save the global best fitness convergence curve."""
         plt.figure(figsize=(8, 5))
-        #plt.plot(self.pso.Gbest_value_history, label="Global Best")
-        plt.plot(self.pso.mean_fitness_history, label="Mean Fitness", linestyle="--")
+        plt.plot(self.pso.Gbest_value_history, label="Global Best Fitness", color="blue")
         plt.xlabel("Iteration")
         plt.ylabel("Fitness (MSE)")
-        plt.title("PSO Convergence Curve")
+        plt.title("Global Best Fitness Convergence")
         plt.legend()
         plt.grid(True)
 
-        save_path = os.path.join(self.test_dir, "convergence_curve.jpg")
+        save_path = os.path.join(self.test_dir, "1_gbest_convergence.jpg")
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close()
-        print(f"[SAVED] Convergence plot -> {save_path}")
+        print(f"[SAVED] Global Best convergence plot -> {save_path}")
 
+    def plot_population_fitness_convergence(self):
+        """Plot and save the mean and standard deviation of fitness across the population."""
+        mean = np.array(self.pso.mean_fitness_history)
+        std = np.array(self.pso.std_fitness_history)
 
-    def plot_mean_position_convergence(self, component_wise=False):
-        """
-        Plot the convergence of the swarm in terms of average particle position.
-        
-        Parameters
-        ----------
-        component_wise : bool, optional (default=False)
-            If True, plots each dimension of the mean position vector separately.
-            If False, plots the L2 norm (magnitude) of the mean position over time.
-        """
+        # --- Ensure equal lengths ---
+        min_len = min(len(mean), len(std))
+        mean = mean[:min_len]
+        std = std[:min_len]
+        iterations = range(min_len)
+
+        plt.figure(figsize=(8, 5))
+        plt.plot(iterations, mean, label="Mean Fitness", color="orange", linestyle="--")
+        plt.fill_between(iterations, mean - std, mean + std, color="orange", alpha=0.2, label="±1 Std. Dev.")
+        plt.xlabel("Iteration")
+        plt.ylabel("Fitness (MSE)")
+        plt.title("Population Fitness Convergence (Mean ± Std)")
+        plt.legend()
+        plt.grid(True)
+
+        save_path = os.path.join(self.test_dir, "2_population_fitness_convergence.jpg")
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+
+    def plot_position_convergence(self):
+        # plots the L2 norm (magnitude) of the mean position over time.
         mean_positions = [np.mean(particles, axis=0) for particles in self.pso.particle_history]
         mean_positions = np.array(mean_positions)  # shape: (iterations, dimensions)
 
         plt.figure(figsize=(8, 5))
-
-        if component_wise and mean_positions.shape[1] <= 10:
-            # Plot each dimension separately (only if reasonably few dimensions)
-            for d in range(mean_positions.shape[1]):
-                plt.plot(mean_positions[:, d], label=f"Dim {d+1}")
-            plt.ylabel("Mean Position (per Dimension)")
-            plt.title("Component-wise Mean Particle Position Convergence")
-            plt.legend()
-        else:
-            # Plot the L2 norm (magnitude)
-            norms = np.linalg.norm(mean_positions, axis=1)
-            plt.plot(norms, color="teal")
-            plt.ylabel("‖Mean Position‖ (L2 Norm)")
-            plt.title("Mean Particle Position Convergence (Magnitude)")
-
+        # Plot the L2 norm (magnitude)
+        norms = np.linalg.norm(mean_positions, axis=1)
+        plt.plot(norms, color="teal")
+        plt.ylabel("‖Mean Position‖ (L2 Norm)")
+        plt.title("Mean Particle Position Convergence (Magnitude)")
         plt.xlabel("Iteration")
         plt.grid(True)
-
-        save_path = os.path.join(self.test_dir, "mean_position_convergence.jpg")
+        save_path = os.path.join(self.test_dir, "3_mean_position_convergence.jpg")
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close()
         print(f"[SAVED] Mean position convergence plot -> {save_path}")
 
+    def plot_position_distance_convergence(self):
+        """Compute and plot the swarm's speed of convergence (mean distance to global best)."""
+        cluster_radii = []
+
+        # --- Compute mean distance of particles to global best per iteration ---
+        for i in range(len(self.pso.particle_history)):
+            particles = self.pso.particle_history[i]
+            gbest = self.pso.Gbest_position_history[i]
+            distances = np.linalg.norm(particles - gbest, axis=1)
+            cluster_radii.append(np.mean(distances))
+
+        # --- Plot ---
+        plt.figure(figsize=(8, 5))
+        plt.plot(cluster_radii, color="green", label="Mean Distance to Global Best")
+        plt.xlabel("Iteration")
+        plt.ylabel("Mean Distance")
+        plt.title("PSO Speed of Convergence")
+        plt.legend()
+        plt.grid(True)
+
+        # --- Save figure ---
+        save_path = os.path.join(self.test_dir, "4_mean_distance_convergence.jpg")
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+        print(f"[SAVED] Speed of convergence plot -> {save_path}")
 
     def plot_swarm_diversity(self):
         """Plot and save average swarm diversity across iterations."""
@@ -168,7 +195,7 @@ class Visualizer:
         plt.title("Swarm Diversity Over Time")
         plt.grid(True)
 
-        save_path = os.path.join(self.test_dir, "swarm_diversity.jpg")
+        save_path = os.path.join(self.test_dir, "5_swarm_diversity.jpg")
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close()
         print(f"[SAVED] Swarm diversity plot -> {save_path}")
@@ -183,10 +210,11 @@ class Visualizer:
         plt.title("Swarm Velocity Magnitude Over Time")
         plt.grid(True)
 
-        save_path = os.path.join(self.test_dir, "velocity_magnitude.jpg")
+        save_path = os.path.join(self.test_dir, "6_velocity_magnitude.jpg")
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close()
         print(f"[SAVED] Velocity magnitude plot -> {save_path}")
+
 
 
     def record_test(self, base_dir = "_Test_Results" ):
@@ -200,8 +228,10 @@ class Visualizer:
 
         # --- Write parameters file ---
         self._write_params_file()
-        self.plot_fitness_convergence()
-        self.plot_mean_position_convergence()
+        self.plot_gbest_convergence()
+        self.plot_population_fitness_convergence()
+        self.plot_position_convergence()
+        self.plot_position_distance_convergence()
         self.plot_swarm_diversity()
         self.plot_velocity_magnitude()
         self.animate_pso_pca_gif()

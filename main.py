@@ -13,7 +13,7 @@ LAYERS = [8, 16, 16, 1]
 # 2. Massively increase particles for a "brute force" search
 NUM_PARTICLES = 30
 # 3. Increase iterations for a longer search
-NUM_ITERATIONS = 2000
+NUM_ITERATIONS = 1000
 NUM_INFORMANTS = 6
 # 4. Back to the best-performing loss function
 LOSS_FUNCTION = 'mae' 
@@ -83,7 +83,6 @@ def main():
     optimizer = pso.ParticleSwarm(
         num_particles=NUM_PARTICLES,
         num_informants=NUM_INFORMANTS,
-        num_iterations=NUM_ITERATIONS,
         objective_function=obj_func,
         particle_length=particle_length,
         discrete_params=discrete_params,

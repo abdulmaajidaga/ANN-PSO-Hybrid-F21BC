@@ -314,5 +314,4 @@ def plot_predictions(actual, predicted, test_folder = None):
         plt.savefig(f'{test_folder}\model_predictions.png', dpi=300, bbox_inches='tight')
     else:
         plt.savefig('model_predictions.png', dpi=300, bbox_inches='tight')
-    print("\nEvaluation plot saved as 'model_predictions.png'")
-    plt.show()
+  
