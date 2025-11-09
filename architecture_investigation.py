@@ -12,7 +12,7 @@ from datetime import datetime
 import warnings
 
 # Your existing imports
-import Utility.data_loader as data_loader
+import Utility.data_handler as data_handler
 import ANN.ann as ann
 import PSO.pso as pso
 from BRIDGE import initialize_particles, create_objective_function, reconstruct_params
@@ -505,7 +505,7 @@ def main():
     # Load data
     print("\nLoading data...")
     # data_inputs is a tuple: ((X_train, y_train), (X_test, y_test), y_scale_params)
-    data_inputs = data_loader.load_concrete_data(DATASET_PATH)
+    data_inputs = data_handler.load_concrete_data(DATASET_PATH)
     
     # Run experiments
     all_results = []
