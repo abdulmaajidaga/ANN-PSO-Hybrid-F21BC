@@ -57,7 +57,7 @@ PSO_PARAMS_LOCAL = {
     'beta': 1.49445,    
     'gamma': 1.49445, 
     'delta': 0.0,       
-    'epsilon': 0.55    
+    'epsilon': 0.85    
 }
 
 PSO_PARAMS = PSO_PARAMS_LOCAL
