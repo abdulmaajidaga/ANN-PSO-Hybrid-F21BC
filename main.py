@@ -9,14 +9,14 @@ import Utility.model_utils as model_utils
 
 # --- TUNED PARAMETERS ---
 # 1. Back to the original, best-performing architecture
-LAYERS = [8, 16, 16, 16, 1] 
+LAYERS = [8, 16, 16, 1] 
 # 2. Massively increase particles for a "brute force" search
 NUM_PARTICLES = 30
 # 3. Increase iterations for a longer search
-NUM_ITERATIONS = 100
+NUM_ITERATIONS = 2000
 NUM_INFORMANTS = 6
 # 4. Back to the best-performing loss function
-LOSS_FUNCTION = 'rmse' 
+LOSS_FUNCTION = 'mae' 
 DISCRETE_PSO = True
 # --- END TUNED PARAMETERS ---
 
@@ -57,10 +57,10 @@ PSO_PARAMS_LOCAL = {
     'beta': 1.49445,    
     'gamma': 1.49445, 
     'delta': 0.0,       
-    'epsilon': 1.0     
+    'epsilon': 0.85    
 }
 
-PSO_PARAMS = PSO_PARAMS
+PSO_PARAMS = PSO_PARAMS_LOCAL
 
 def main():
     # 2. Load Data
