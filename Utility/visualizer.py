@@ -8,8 +8,7 @@ import pandas as pd
 
 class Visualizer:
     def __init__(self, pso, layers=None, pso_params=None, num_particles=None,
-                 num_iterations=None, num_informants=None, loss_function=None,
-                 intial_scaled_loss=None, final_scaled_loss=None, final_real_loss=None, test_real_loss = None,
+                 num_iterations=None, num_informants=None, loss_function=None, train_loss=None, test_loss = None,
                  base_dir="Test_Results"):
         """
         Initialize visualizer with PSO object and experiment metadata.
@@ -21,10 +20,8 @@ class Visualizer:
         self.num_iterations = num_iterations
         self.num_informants = num_informants
         self.loss_function = loss_function
-        self.intial_scaled_loss = intial_scaled_loss
-        self.final_scaled_loss = final_scaled_loss
-        self.final_real_loss = final_real_loss
-        self.test_real_loss = test_real_loss
+        self.train_loss = train_loss
+        self.test_loss = test_loss
         self.base_dir = base_dir
 
 
@@ -43,10 +40,8 @@ class Visualizer:
                 for k, v in self.pso_params.items():
                     f.write(f"- {k}: {v}\n\n")
                     
-            f.write(f"Initial Best Loss (un-scaled): {self.intial_scaled_loss:.6f}\n")
-            f.write(f"Final Best Loss (un-scaled): {self.final_scaled_loss:.6f}\n")
-            f.write(f"Final Best Loss (scaled): {self.final_real_loss:.6f}\n")
-            f.write(f"Test Set Loss (scaled): {self.test_real_loss:.6f}\n")
+            f.write(f"Final Best Loss (scaled): {self.train_loss:.6f}\n")
+            f.write(f"Test Set Loss (scaled): {self.test_loss:.6f}\n")
             
         print(f"[INFO] Parameters saved to: {file_path}")
 

@@ -6,7 +6,7 @@ Run this AFTER training to verify the saved model works
 import numpy as np
 import pickle
 import ANN.ann as ann
-import Utility.data_loader as data_loader
+import Utility.data_handler as data_handler
 import Utility.model_utils as model_utils
 
 def main():
@@ -26,7 +26,7 @@ def main():
     
     print("\nLoading test data...")
     (X_train, y_train), (X_test, y_test), y_scale_params = \
-        data_loader.load_concrete_data("concrete_data.csv")
+        data_handler.load_concrete_data("concrete_data.csv")
     
     print(f"Test set size: {len(X_test)} samples")
     

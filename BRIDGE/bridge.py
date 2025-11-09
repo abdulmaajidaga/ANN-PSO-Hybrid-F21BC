@@ -104,7 +104,7 @@ class Bridge(object):
             return [weights, biases, activations]
         return [weights, biases]
 
-    def create_objective_function(self, X_train, y_train, loss_function_name='mse'): 
+    def create_objective_function(self, X_train, y_train,  loss_function_name='mse'): 
         """
         A "factory" that returns the objective function the PSO will minimize.
         This function "closes over" the ann, X_train, and y_train variables

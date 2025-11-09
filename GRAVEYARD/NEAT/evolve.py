@@ -13,7 +13,7 @@ except ImportError:
     visualize = None
 
 # Import the data loading function from the 'Utility' package
-from Utility.data_loader import load_concrete_data
+from Utility.data_handler import load_concrete_data
 
 # --- Global Data ---
 # Load data once to be used in the fitness function
