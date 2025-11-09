@@ -57,7 +57,7 @@ PSO_PARAMS_LOCAL = {
     'beta': 1.49445,    
     'gamma': 1.49445, 
     'delta': 0.0,       
-    'epsilon': 0.85    
+    'epsilon': 0.55    
 }
 
 PSO_PARAMS = PSO_PARAMS_LOCAL
@@ -65,7 +65,7 @@ PSO_PARAMS = PSO_PARAMS_LOCAL
 def main():
     # 2. Load Data
     data_handler = data_handler_class.DataHandler()
-    (X_train_scaled, y_train), (X_test_scaled, y_test) = data_handler.transform_data(path="concrete_data.csv", train_split = 0.7, random_seed = 1, remove_outliers = False)
+    (X_train_scaled, y_train), (X_test_scaled, y_test) = data_handler.transform_data(path="concrete_data.csv", train_split = 0.7, random_seed = 1)
 
     # 3. Create Model "Blueprint"
     model_template = ann.MultiLayerANN(layers=LAYERS)
