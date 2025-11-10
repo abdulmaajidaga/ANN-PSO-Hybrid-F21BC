@@ -1,7 +1,11 @@
 import numpy as np
 
 def logistic(x):
-    return 1 / (1 + np.exp(-x))
+    return np.where(
+        x >= 0,
+        1 / (1 + np.exp(-x)),   # for x >= 0
+        np.exp(x) / (1 + np.exp(x))  # for x < 0
+    )
 
 def relu(x):
     return np.maximum(0, x)

@@ -1,5 +1,6 @@
 import numpy as np
 import ANN.loss_functions as loss_functions
+import math
 
 
 class Bridge(object):
@@ -27,8 +28,11 @@ class Bridge(object):
             
             # Initialize weights and biases for all layers
             for i in range(num_layers - 1):
-                # Small random weights
-                weights.append(np.random.randn(self.ann.layers[i], self.ann.layers[i+1]) * 0.1) 
+                # Reference -> Understanding Deep learning, Chapter 7.5.3 pg 111
+                # Initialize weights according to a normal distribution centered around 0
+                # sd is calculated according to the number of neurons in corresponding layers
+                sigma = math.sqrt((4 / (self.ann.layers[i] + self.ann.layers[i+1])))
+                weights.append(np.random.normal(0, sigma, size=(self.ann.layers[i], self.ann.layers[i+1]))) 
                 # Zero biases
                 biases.append(np.zeros((1, self.ann.layers[i+1])))
         

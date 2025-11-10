@@ -1,5 +1,6 @@
 import numpy as np
 import ANN.activations as act
+import math
 
 class MultiLayerANN:
     
@@ -13,7 +14,11 @@ class MultiLayerANN:
         
 
         for i in range(self.num_layers - 1):
-            self.weights.append(np.random.randn(layers[i], layers[i+1]) * 0.1)  # 0.1 is the scaling factor
+            # Reference -> Understanding Deep learning, Chapter 7.5.3 pg 111
+            # Initialize weights according to a normal distribution centered around 0
+            # sd is calculated according to the number of neurons in corresponding layers
+            sigma = math.sqrt((4 / (self.layers[i] + self.layers[i+1])))
+            self.weights.append(np.random.normal(0, sigma, size=(self.layers[i], self.layers[i+1]))) 
             self.biases.append(np.zeros((1, layers[i+1]))) # Bias is initialized to zero
     
         if activations is not None:

@@ -28,22 +28,6 @@ PSO_PARAMS = {
     'epsilon': 0.8  
 }
 
-PSO_PARAMS_2 = {
-    'alpha': 0.75,   
-    'beta': 1.0,    
-    'gamma': 1.0,     
-    'delta': 0.0,   
-    'epsilon': 0.75 
-}
-
-PSO_PARAMS_HYBRID = {
-    'alpha': 0.729,
-    'beta': 1.49445,
-    'gamma': 0.747225,
-    'delta': 0.747225,
-    'epsilon': 1.0
-}
-
 PSO_PARAMS_GLOBAL = {
     'alpha': 0.729,    
     'beta': 1.49445,   
@@ -58,6 +42,14 @@ PSO_PARAMS_LOCAL = {
     'gamma': 1.49445, 
     'delta': 0.0,       
     'epsilon': 0.85    
+}
+
+PSO_PARAMS_HYBRID = {
+    'alpha': 0.729,
+    'beta': 1.49445,
+    'gamma': 1.49445,
+    'delta': 1.49445,
+    'epsilon': 1.0
 }
 
 PSO_PARAMS = PSO_PARAMS_LOCAL
