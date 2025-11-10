@@ -4,7 +4,7 @@ import numpy as np
 
 class ParticleSwarm(object):
     def  __init__(self, num_particles, num_informants,  objective_function,  particle_length, discrete_params = None,
-                 alpha = 0.729, beta = 1.494, gamma = 1.0, delta = 1.494, epsilon = 0.15, particles = None, v_max_scale = 1.5):
+                 alpha = 0.729, beta = 1.494, gamma = 1.494, delta = 1.494, epsilon = 0.85, particles = None, v_max_scale = 1.5):
         
         self.num_particles = num_particles # Number of particles in the swarm (swarm size)
         self.objective_function = objective_function # Objective function to be minimized
@@ -20,13 +20,13 @@ class ParticleSwarm(object):
         # Visualization variables created by chatGPT
         self.mean_fitness = 0
         self.std_fitness = 0
-        self.Gbest_value_history = []
+        self.gbest_value_history = []
         self.mean_fitness_history = []
         self.std_fitness_history = []
         self.particle_history = []
         self.velocity_history = []
         self.fitness_history = []
-        self.Gbest_position_history = []
+        self.gbest_position_history = []
         
         if particles is not None:
             self.particle_array = particles # Initialise with existing particles 
@@ -38,49 +38,49 @@ class ParticleSwarm(object):
         self.velocity_array = np.random.rand(num_particles, self.particle_length) # Stores particle velocities at each particle index
         
         # Reference -> Improved Particle Swarm Optimization Based on Velocity Clamping and Particle Penalization
-        # --- MODIFICATION 1: Velocity Clamping Method ---
+        # Set particle and velocity limits
         max = self.particle_array.max()
         min = self.particle_array.min()
-        print(min, max)
-        self.p_max = np.full_like(self.velocity_array, max * 1000) 
-        self.p_min = np.full_like(self.velocity_array, min * 1000)
+        # Set particle limits to a high upper and lower bounds based on the original initialization
+        self.p_max = np.full_like(self.particle_array, max * 1000)
+        self.p_min = np.full_like(self.particle_array, min * 1000)
+        # Set velocity limit to a scaled value based on the original initialization
         self.v_max = (max - min) * v_max_scale
         self.v_min = -self.v_max
-        # --- END MODIFICATION 1 ---
 
         # Stores personal best positions for each particle in the matching index
-        self.personal_best_array = np.copy(self.particle_array)
+        # For example, particle_pbest[0] stores the particle pbest for particle_array[0]
+        self.particle_pbest = np.copy(self.particle_array)
         
         # Stores fitness values for each particle in the matching index
         self.fitness_values_array =  self.objective_function(self.particle_array) 
         self.personal_best_fitness_values = np.copy(self.fitness_values_array) 
         
-        # Store informant best positions for each particle, where each informant best position matches the particle array index
-        # For example,  particle_informant_best[0] stores the best informant vector position for particle_array[0]
-        # and particle_informant_indices[0] contains the list of selected informants for particle_array[0] 
-        self.particle_informant_indices, self.particle_informant_best = self.create_particle_informant_best_nearest(num_informants)
+        # Store informant best positions for each particle, where each informant position matches the particle array index
+        # For example,  particle_ibest[0] stores the particle Ibest for particle_array[0]
+        # and particle_ibest_list[0] contains the list of selected informants for particle_array[0] 
+        self.particle_ibest, self.particle_ibest_list = self.create_particle_informant_best_knearest(num_informants)
         
         
         # Find and store global best position and value
         global_best_idx = np.argmin(self.fitness_values_array)
-        self.Gbest = self.particle_array[global_best_idx] 
-        self.Gbest_value = self.fitness_values_array[global_best_idx] 
+        self.gbest = self.particle_array[global_best_idx] 
+        self.gbest_value = self.fitness_values_array[global_best_idx] 
         
+        # --- Variables for visualization --- genereated by chatgpt
         mean_fitness = np.mean(self.fitness_values_array)
         self.mean_fitness_history.append(mean_fitness)
-        self.Gbest_value_history.append(self.Gbest_value)
+        self.gbest_value_history.append(self.gbest_value)
         self.particle_history.append(self.particle_array.copy())
         self.velocity_history.append(self.velocity_array.copy())
         self.fitness_history.append(self.fitness_values_array.copy())
-        self.Gbest_position_history.append(self.Gbest.copy())
+        self.gbest_position_history.append(self.gbest.copy())      
 
-        
-
-    def create_particle_informant_best_nearest(self, num_informants):
+    def create_particle_informant_best_knearest(self, num_informants):
         num_particles = self.num_particles
         particle_array = self.particle_array
-        particle_informant_best = np.zeros_like(particle_array)
-        particle_informant_indices = np.zeros((num_particles, num_informants), dtype=int)
+        particle_ibest = np.zeros_like(particle_array)
+        particle_ibest_list = np.zeros((num_particles, num_informants), dtype=int)
 
         # --- Compute pairwise squared Euclidean distances ---
         # distance_matrix[i,j] = ||particle[i] - particle[j]||^2
@@ -95,7 +95,7 @@ class ParticleSwarm(object):
 
             # Indices of closest particles
             nearest_indices = np.argsort(distances)[:num_informants]
-            particle_informant_indices[i] = nearest_indices
+            particle_ibest_list[i] = nearest_indices
             # Get the *personal best fitness* of these informants
             informant_pbest_values = self.personal_best_fitness_values[nearest_indices]
             # Find the best one *among the informants*
@@ -103,10 +103,10 @@ class ParticleSwarm(object):
             # Get the global index of that best informant
             best_global_idx = nearest_indices[best_local_idx]
             # Store the *position* of that best informant's pbest
-            particle_informant_best[i] = self.personal_best_array[best_global_idx]
+            particle_ibest[i] = self.particle_pbest[best_global_idx]
             
 
-        return particle_informant_indices, particle_informant_best
+        return particle_ibest, particle_ibest_list
       
     def _update_informants_best(self):
         """
@@ -116,14 +116,14 @@ class ParticleSwarm(object):
         """
         for i in range(self.num_particles):
             # Get the *personal best fitness* of these informants
-            informants_list = self.particle_informant_indices[i]
+            informants_list = self.particle_ibest_list[i]
             informant_pbest_values = self.personal_best_fitness_values[informants_list]
             # Find the best one *among the informants*
             best_local_idx = np.argmin(informant_pbest_values)
             # Get the global index of that best informant
             best_global_idx = informants_list[best_local_idx]
             # Store the *position* of that best informant's pbest
-            self.particle_informant_best[i] = self.personal_best_array[best_global_idx]
+            self.particle_ibest[i] = self.particle_pbest[best_global_idx]
             
     def _normalize_discrete_variables(self):
         ## Generated by ChatGPT 
@@ -147,9 +147,9 @@ class ParticleSwarm(object):
         global_social_component_array = np.random.uniform(low = 0, high = self.delta, size=(self.num_particles, self.particle_length))
    
         self.velocity_array = self.alpha * self.velocity_array + \
-                       cognitive_component_array * (self.personal_best_array - self.particle_array) + \
-                       local_social_component_array * ( self.particle_informant_best - self.particle_array) + \
-                       global_social_component_array * (self.Gbest - self.particle_array)
+                       cognitive_component_array * (self.particle_pbest - self.particle_array) + \
+                       local_social_component_array * ( self.particle_ibest - self.particle_array) + \
+                       global_social_component_array * (self.gbest - self.particle_array)
         
         # --- MODIFICATION 1: Velocity Clamping Method ---
         self.velocity_array = np.clip(self.velocity_array, self.v_min, self.v_max)
@@ -166,15 +166,14 @@ class ParticleSwarm(object):
         # Calculate fitness values and update personal best array
         self.fitness_values_array = self.objective_function(self.particle_array)
         improved_particles_idx = self.fitness_values_array < self.personal_best_fitness_values
-        self.personal_best_array[improved_particles_idx] = self.particle_array[improved_particles_idx]
+        self.particle_pbest[improved_particles_idx] = self.particle_array[improved_particles_idx]
         self.personal_best_fitness_values[improved_particles_idx] = self.fitness_values_array[improved_particles_idx]
         
-        ## Version to set gbest based on only the particles personal best fitness values
         # Update global best position and value
         global_best_idx = np.argmin(self.personal_best_fitness_values)
-        if self.personal_best_fitness_values[global_best_idx] < self.Gbest_value:
-            self.Gbest = self.particle_array[global_best_idx]
-            self.Gbest_value = self.personal_best_fitness_values[global_best_idx]       
+        if self.personal_best_fitness_values[global_best_idx] < self.gbest_value:
+            self.gbest = self.particle_array[global_best_idx]
+            self.gbest_value = self.personal_best_fitness_values[global_best_idx]       
         
         self._update_informants_best()
         
@@ -183,11 +182,11 @@ class ParticleSwarm(object):
         self.std_fitness = np.std(self.fitness_values_array)  
         self.mean_fitness_history.append(self.mean_fitness)
         self.std_fitness_history.append(self.std_fitness) 
-        self.Gbest_value_history.append(self.Gbest_value)
+        self.gbest_value_history.append(self.gbest_value)
         self.particle_history.append(self.particle_array.copy())
         self.velocity_history.append(self.velocity_array.copy())
         self.fitness_history.append(self.fitness_values_array.copy())
-        self.Gbest_position_history.append(self.Gbest.copy())
+        self.gbest_position_history.append(self.gbest.copy())
         
         
     

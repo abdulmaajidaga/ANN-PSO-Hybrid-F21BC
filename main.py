@@ -87,7 +87,7 @@ def main():
     print(f"Starting PSO optimization using {LOSS_FUNCTION.upper()}...\n") 
     for i in range(NUM_ITERATIONS):
         optimizer._update()
-        real_loss = optimizer.Gbest_value
+        real_loss = optimizer.gbest_value
         real_mean_loss = optimizer.mean_fitness
            
         if (i + 1) % 10 == 0:
@@ -96,8 +96,8 @@ def main():
     print("\nOptimization Finished.")
     
     # 8. Un-scale final report
-    intial_train_loss = optimizer.Gbest_value_history[0] # Get the last recorded loss
-    final_train_loss = optimizer.Gbest_value_history[-1] # Get the last recorded loss
+    intial_train_loss = optimizer.gbest_value_history[0] # Get the last recorded loss
+    final_train_loss = optimizer.gbest_value_history[-1] # Get the last recorded loss
     print(f"Initial Best Loss: {intial_train_loss:.6f}")
     print(f"Final Best Loss: {final_train_loss:.6f}")
 

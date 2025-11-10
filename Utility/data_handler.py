@@ -4,7 +4,6 @@ import numpy as np
 
 class DataHandler(object):
     def  __init__(self):
-        print("Initialized Data Handler")
         self.X_mean = None
         self.X_std = None
 
@@ -39,8 +38,8 @@ class DataHandler(object):
         
         return (X_train_scaled, y_train_raw), (X_test_scaled, y_test_raw)
     
-    def inverse_transform_data(self, X_predictions_scaled):
-        X_predictions_real = X_predictions_scaled * self.X_std + self.X_mean
-        return X_predictions_real
+    def inverse_transform_data(self, X_train_scaled):
+        X_train_real = X_train_scaled * self.X_std + self.X_mean
+        return X_train_real
         
 
