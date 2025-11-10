@@ -3,7 +3,6 @@ import ANN.activations as act
 import math
 
 class MultiLayerANN:
-    
     def __init__(self, layers, activations = None):
         self.layers = layers
         self.num_layers = len(layers)

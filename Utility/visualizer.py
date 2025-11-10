@@ -75,7 +75,7 @@ class Visualizer:
 
         def update(frame):
             particles = pca.transform(self.pso.particle_history[frame])
-            gbest = pca.transform(self.pso.Gbest_position_history[frame].reshape(1, -1))
+            gbest = pca.transform(self.pso.gbest_position_history[frame].reshape(1, -1))
             scat.set_offsets(particles)
             gb_point.set_data(gbest[0, 0], gbest[0, 1])
             ax.set_title(f"Iteration {frame + 1}")
@@ -100,7 +100,7 @@ class Visualizer:
     def plot_gbest_convergence(self):
         """Plot and save the global best fitness convergence curve."""
         plt.figure(figsize=(8, 5))
-        plt.plot(self.pso.Gbest_value_history, label="Global Best Fitness", color="blue")
+        plt.plot(self.pso.gbest_value_history, label="Global Best Fitness", color="blue")
         plt.xlabel("Iteration")
         plt.ylabel("Fitness (MSE)")
         plt.title("Global Best Fitness Convergence")
@@ -161,7 +161,7 @@ class Visualizer:
         # --- Compute mean distance of particles to global best per iteration ---
         for i in range(len(self.pso.particle_history)):
             particles = self.pso.particle_history[i]
-            gbest = self.pso.Gbest_position_history[i]
+            gbest = self.pso.gbest_position_history[i]
             distances = np.linalg.norm(particles - gbest, axis=1)
             cluster_radii.append(np.mean(distances))
 

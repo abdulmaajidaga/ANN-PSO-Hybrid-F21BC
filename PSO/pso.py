@@ -4,7 +4,7 @@ import numpy as np
 
 class ParticleSwarm(object):
     def  __init__(self, num_particles, num_informants,  objective_function,  particle_length, discrete_params = None,
-                 alpha = 0.729, beta = 1.494, gamma = 1.494, delta = 1.494, epsilon = 0.85, particles = None, v_max_scale = 1.5):
+                 alpha = 0.729, beta = 1.494, gamma = 1.494, delta = 1.494, epsilon = 0.85, particles = None, v_max_scale = 2.5):
         
         self.num_particles = num_particles # Number of particles in the swarm (swarm size)
         self.objective_function = objective_function # Objective function to be minimized
@@ -33,9 +33,6 @@ class ParticleSwarm(object):
         else:
             self.particle_array = np.random.uniform(size=(num_particles, self.particle_length)) # Initialise with random particle array
 
-        # Here, the particle velocities are randomly initialized in a new array, where each velocity array index matches the particle array index
-        # For example, particle_array[0] has a velocity of velocity_array[0]
-        self.velocity_array = np.random.rand(num_particles, self.particle_length) # Stores particle velocities at each particle index
         
         # Reference -> Improved Particle Swarm Optimization Based on Velocity Clamping and Particle Penalization
         # Set particle and velocity limits
@@ -47,6 +44,10 @@ class ParticleSwarm(object):
         # Set velocity limit to a scaled value based on the original initialization
         self.v_max = (max - min) * v_max_scale
         self.v_min = -self.v_max
+        
+        ## Here, the particle velocities are randomly initialized in a new array, where each velocity array index matches the particle array index
+        ## For example, particle_array[0] has a velocity of velocity_array[0]
+        self.velocity_array = np.random.uniform(size=(num_particles, self.particle_length))
 
         # Stores personal best positions for each particle in the matching index
         # For example, particle_pbest[0] stores the particle pbest for particle_array[0]
@@ -59,7 +60,7 @@ class ParticleSwarm(object):
         # Store informant best positions for each particle, where each informant position matches the particle array index
         # For example,  particle_ibest[0] stores the particle Ibest for particle_array[0]
         # and particle_ibest_list[0] contains the list of selected informants for particle_array[0] 
-        self.particle_ibest, self.particle_ibest_list = self.create_particle_informant_best_knearest(num_informants)
+        self.particle_ibest, self.particle_ibest_list = self.create_particle_informants(num_informants)
         
         
         # Find and store global best position and value
@@ -76,7 +77,7 @@ class ParticleSwarm(object):
         self.fitness_history.append(self.fitness_values_array.copy())
         self.gbest_position_history.append(self.gbest.copy())      
 
-    def create_particle_informant_best_knearest(self, num_informants):
+    def create_particle_informants(self, num_informants):
         num_particles = self.num_particles
         particle_array = self.particle_array
         particle_ibest = np.zeros_like(particle_array)
@@ -142,14 +143,14 @@ class ParticleSwarm(object):
            
     def _update(self):
     
-        cognitive_component_array =  np.random.uniform(low = 0, high = self.beta, size=(self.num_particles, self.particle_length))
-        local_social_component_array = np.random.uniform(low = 0, high = self.gamma, size=(self.num_particles, self.particle_length))
-        global_social_component_array = np.random.uniform(low = 0, high = self.delta, size=(self.num_particles, self.particle_length))
+        cognitive_component_array =  np.random.uniform(size=(self.num_particles, self.particle_length))
+        local_social_component_array = np.random.uniform( size=(self.num_particles, self.particle_length))
+        global_social_component_array = np.random.uniform( size=(self.num_particles, self.particle_length))
    
         self.velocity_array = self.alpha * self.velocity_array + \
-                       cognitive_component_array * (self.particle_pbest - self.particle_array) + \
-                       local_social_component_array * ( self.particle_ibest - self.particle_array) + \
-                       global_social_component_array * (self.gbest - self.particle_array)
+                       self.beta * cognitive_component_array * (self.particle_pbest - self.particle_array) + \
+                       self.gamma * local_social_component_array * ( self.particle_ibest - self.particle_array) + \
+                       self.delta * global_social_component_array * (self.gbest - self.particle_array)
         
         # --- MODIFICATION 1: Velocity Clamping Method ---
         self.velocity_array = np.clip(self.velocity_array, self.v_min, self.v_max)

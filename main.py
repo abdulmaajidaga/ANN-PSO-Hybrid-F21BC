@@ -41,7 +41,7 @@ PSO_PARAMS_LOCAL = {
     'beta': 1.49445,    
     'gamma': 1.49445, 
     'delta': 0.0,       
-    'epsilon': 0.85    
+    'epsilon': 0.75   
 }
 
 PSO_PARAMS_HYBRID = {
@@ -89,26 +89,23 @@ def main():
         optimizer._update()
         real_loss = optimizer.gbest_value
         real_mean_loss = optimizer.mean_fitness
-           
         if (i + 1) % 10 == 0:
             print(f"Iteration {i+1}/{NUM_ITERATIONS}, Global Best Loss: {real_loss:.6f}, Mean Loss: {real_mean_loss}")
-
     print("\nOptimization Finished.")
     
     # 8. Un-scale final report
-    intial_train_loss = optimizer.gbest_value_history[0] # Get the last recorded loss
+    intial_train_loss = optimizer.gbest_value_history[0] # Get the first recorded loss
     final_train_loss = optimizer.gbest_value_history[-1] # Get the last recorded loss
     print(f"Initial Best Loss: {intial_train_loss:.6f}")
     print(f"Final Best Loss: {final_train_loss:.6f}")
 
     # 9. Evaluate on Test Set
-    best_params = ann_pso_bridge.reconstruct_params(optimizer.Gbest)
+    best_params = ann_pso_bridge.reconstruct_params(optimizer.gbest)
     y_test_predictions = model_template.evaluate_with_params(X_test_scaled, best_params)
     
     # Calculate the correct test loss
     test_loss_func = loss_functions.get_loss_function(LOSS_FUNCTION)
     test_loss = test_loss_func(y_test, y_test_predictions)
-    
     print(f"Test Set {LOSS_FUNCTION.upper()}: {test_loss:.6f}\n")
     
     # Visualizations
