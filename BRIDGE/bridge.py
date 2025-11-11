@@ -46,7 +46,7 @@ class Bridge(object):
             if self.discrete:
                 discrete_variable_probabilities = []
                 for _ in range(num_activation_variables):
-                    probability_array = np.random.rand(1, num_activation_functions)
+                    probability_array = np.random.uniform(low= 0, high = 1, size=(1, num_activation_functions))
                     probability_array /= probability_array.sum()  # Normalize to sum to 1
                     discrete_variable_probabilities.append(probability_array.flatten())
                     
