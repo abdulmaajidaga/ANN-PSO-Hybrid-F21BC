@@ -4,7 +4,7 @@ import numpy as np
 
 class ParticleSwarm(object):
     def  __init__(self, num_particles, num_informants,  objective_function,  particle_length, discrete_params = None,
-                 alpha = 0.729, beta = 1.494, gamma = 1.494, delta = 1.494, epsilon = 0.85, particles = None, v_max_scale = 2.5):
+                 alpha = 0.729, beta = 1.494, gamma = 1.494, delta = 1.494, epsilon = 0.85, particles = None, v_max_scale = 0.5):
         
         self.num_particles = num_particles # Number of particles in the swarm (swarm size)
         self.objective_function = objective_function # Objective function to be minimized
@@ -39,10 +39,12 @@ class ParticleSwarm(object):
         max = self.particle_array.max()
         min = self.particle_array.min()
         # Set particle limits to a high upper and lower bounds based on the original initialization
-        self.p_max = np.full_like(self.particle_array, max * 1000)
-        self.p_min = np.full_like(self.particle_array, min * 1000)
+        p_max_scale = 10
+        self.p_max = np.full_like(self.particle_array, max * p_max_scale)
+        self.p_min = np.full_like(self.particle_array, min * p_max_scale)
         # Set velocity limit to a scaled value based on the original initialization
-        self.v_max = (max - min) * v_max_scale
+        self.v_max = (max - min) * p_max_scale * v_max_scale
+        print(self.v_max)
         self.v_min = -self.v_max
         
         ## Here, the particle velocities are randomly initialized in a new array, where each velocity array index matches the particle array index
@@ -157,8 +159,9 @@ class ParticleSwarm(object):
         self.particle_array = self.particle_array + self.epsilon * self.velocity_array
         # Apply penalty to particle positions that are out of bounds
         penalty_mask = (self.particle_array > self.p_max) | (self.particle_array < self.p_min)
-        self.velocity_array[penalty_mask] = 0
-        self.particle_array[penalty_mask] = -self.particle_array[penalty_mask]
+        self.particle_array = np.clip(self.particle_array, self.p_min, self.p_max)
+        self.velocity_array[penalty_mask] *= -0.5
+        
         
         # Check whether the current PSO implementation has discrete variables
         if self.discrete_params is not None:
