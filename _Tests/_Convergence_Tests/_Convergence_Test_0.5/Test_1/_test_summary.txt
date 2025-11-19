@@ -1,0 +1,4 @@
+Final Train Loss Mean: 15.939831
+Final Train Loss std: 1.863691
+Test Loss Mean: 15.943854
+Test Loss std: 1.721093
