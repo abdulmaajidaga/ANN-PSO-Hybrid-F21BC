@@ -43,3 +43,16 @@ class DataHandler(object):
         return X_train_real
         
 
+def load_concrete_data(path="concrete_data.csv", train_split=0.8, random_seed=42):
+    handler = DataHandler()
+    (X_train, y_train_raw), (X_test, y_test_raw) = handler.transform_data(path=path, train_split=train_split, random_seed=random_seed)
+    y_train_raw = y_train_raw.reshape(-1)
+    y_test_raw = y_test_raw.reshape(-1)
+    y_all = np.concatenate([y_train_raw, y_test_raw])
+    y_mean = y_all.mean()
+    y_std = y_all.std() + 1e-8
+    y_train = (y_train_raw - y_mean) / y_std
+    y_test = (y_test_raw - y_mean) / y_std
+    return (X_train, y_train), (X_test, y_test), (y_mean, y_std)
+
+
