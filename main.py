@@ -20,12 +20,15 @@ LOSS_FUNCTION = 'mae'
 DISCRETE_PSO = True
 # --- END TUNED PARAMETERS ---
 
-PSO_PARAMS = {
-    'alpha': 0.8,   
-    'beta': 1.2,    
-    'gamma': 1.5,     
-    'delta': 0.5,   
-    'epsilon': 0.8  
+W = 0.75
+THETHA = 3.0
+
+PSO_PARAMS_TEST = {
+    'alpha': W,   
+    'beta': THETHA/2,    
+    'gamma': THETHA/2,     
+    'delta': 0,   
+    'epsilon': 0.80
 }
 
 PSO_PARAMS_GLOBAL = {
@@ -47,9 +50,9 @@ PSO_PARAMS_LOCAL = {
 PSO_PARAMS_HYBRID = {
     'alpha': 0.729,
     'beta': 1.49445,
-    'gamma': 1.49445,
-    'delta': 1.49445,
-    'epsilon': 1.0
+    'gamma': 0.73,
+    'delta': 0.73,
+    'epsilon': 0.75
 }
 
 PSO_PARAMS = PSO_PARAMS_LOCAL
@@ -89,7 +92,7 @@ def main():
         optimizer._update()
         real_loss = optimizer.gbest_value
         real_mean_loss = optimizer.mean_fitness
-        if (i + 1) % 10 == 0:
+        if (i + 1) % 20 == 0:
             print(f"Iteration {i+1}/{NUM_ITERATIONS}, Global Best Loss: {real_loss:.6f}, Mean Loss: {real_mean_loss}")
     print("\nOptimization Finished.")
     
@@ -109,22 +112,32 @@ def main():
     print(f"Test Set {LOSS_FUNCTION.upper()}: {test_loss:.6f}\n")
     
     # Visualizations
-    visualizer = v.Visualizer(
-        pso=optimizer,
-        layers=LAYERS,
-        pso_params=PSO_PARAMS,
-        num_particles=NUM_PARTICLES,
-        num_iterations=NUM_ITERATIONS,
-        num_informants=NUM_INFORMANTS,
-        loss_function=LOSS_FUNCTION,
-        train_loss = final_train_loss,
-        test_loss = test_loss
-    )   
+    # visualizer = v.Visualizer(
+    #     pso=optimizer,
+    #     layers=LAYERS,
+    #     pso_params=PSO_PARAMS,
+    #     num_particles=NUM_PARTICLES,
+    #     num_iterations=NUM_ITERATIONS,
+    #     num_informants=NUM_INFORMANTS,
+    #     loss_function=LOSS_FUNCTION,
+    #     train_loss = final_train_loss,
+    #     test_loss = test_loss
+    # )   
     
-    test_folder = visualizer.record_test()
-    model_utils.plot_predictions(y_test, y_test_predictions, test_folder = test_folder)
+    # test_folder = visualizer.record_test()
+    # model_utils.plot_predictions(y_test, y_test_predictions, test_folder = test_folder)
     # model_utils.save_and_evaluate(optimizer, model_template, ann_pso_bridge, y_mean, y_std, PSO_PARAMS, NUM_ITERATIONS, LOSS_FUNCTION, X_test_scaled, y_test)
 
+    return {
+        "final_train_loss": final_train_loss,
+        "test_loss": test_loss,
+        "optimizer": optimizer,
+        "ann_pso_bridge": ann_pso_bridge,
+        "model_template": model_template,
+        "params": PSO_PARAMS,
+        "y_test": y_test,
+        "y_test_predictions": y_test_predictions
+    }
 
 
 if __name__ == "__main__":

@@ -137,22 +137,30 @@ class Visualizer:
         plt.close()
 
     def plot_position_convergence(self):
-        # plots the L2 norm (magnitude) of the mean position over time.
-        mean_positions = [np.mean(particles, axis=0) for particles in self.pso.particle_history]
+        # Compute mean position vector for each iteration
+        mean_positions = [np.mean(particles, axis=0) 
+                        for particles in self.pso.particle_history]
         mean_positions = np.array(mean_positions)  # shape: (iterations, dimensions)
 
+        # Compute the mean of the mean position vector → one scalar per iteration
+        mean_scalar = np.mean(mean_positions, axis=1)  
+        # axis=1 gives: for each iteration, take the mean of all dimensions
+
+        # Plot
         plt.figure(figsize=(8, 5))
-        # Plot the L2 norm (magnitude)
-        norms = np.linalg.norm(mean_positions, axis=1)
-        plt.plot(norms, color="teal")
-        plt.ylabel("‖Mean Position‖ (L2 Norm)")
-        plt.title("Mean Particle Position Convergence (Magnitude)")
+        plt.plot(mean_scalar, color="teal")
+        plt.ylabel("Mean Position (Across Dimensions)")
         plt.xlabel("Iteration")
+        plt.title("Mean Particle Position Convergence")
         plt.grid(True)
+
+        # Save
         save_path = os.path.join(self.test_dir, "3_mean_position_convergence.jpg")
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close()
+
         print(f"[SAVED] Mean position convergence plot -> {save_path}")
+
 
     def plot_position_distance_convergence(self):
         """Compute and plot the swarm's speed of convergence (mean distance to global best)."""
@@ -217,13 +225,13 @@ class Visualizer:
 
 
 
-    def record_test(self, base_dir = "_Test_Results" ):
+    def record_test(self):
         
         # --- Create unique test folder ---
-        os.makedirs(base_dir, exist_ok=True)
-        existing_tests = [d for d in os.listdir(base_dir) if d.startswith("Test_")]
+        os.makedirs(self.base_dir, exist_ok=True)
+        existing_tests = [d for d in os.listdir(self.base_dir) if d.startswith("Test_")]
         next_index = len(existing_tests) + 1
-        self.test_dir = os.path.join(base_dir, f"Test_{next_index}")
+        self.test_dir = os.path.join(self.base_dir, f"Test_{next_index}")
         os.makedirs(self.test_dir, exist_ok=True)
 
         # --- Write parameters file ---
