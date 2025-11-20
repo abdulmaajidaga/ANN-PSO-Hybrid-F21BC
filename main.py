@@ -9,11 +9,11 @@ import Utility.model_utils as model_utils
 
 # --- TUNED PARAMETERS ---
 # 1. Back to the original, best-performing architecture
-LAYERS = [8, 16, 16, 1] 
+LAYERS = [] 
 # 2. Massively increase particles for a "brute force" search
 NUM_PARTICLES = 30
 # 3. Increase iterations for a longer search
-NUM_ITERATIONS = 1000
+NUM_ITERATIONS = 100
 NUM_INFORMANTS = 6
 # 4. Back to the best-performing loss function
 LOSS_FUNCTION = 'mae' 
@@ -55,7 +55,15 @@ PSO_PARAMS_HYBRID = {
     'epsilon': 0.75
 }
 
-PSO_PARAMS = PSO_PARAMS_LOCAL
+PSO_PARAMS_BASELINE = {
+    'alpha': 0.75,
+    'beta': 1.49618,
+    'gamma': 1.49618,
+    'delta': 0.0,
+    'epsilon': 0.75
+}
+
+PSO_PARAMS = PSO_PARAMS_BASELINE
 
 def main():
     # 2. Load Data

@@ -1,11 +1,15 @@
 import numpy as np
 
+# def logistic(x):
+#     return np.where(
+#         x >= 0,
+#         1 / (1 + np.exp(-x)),   # for x >= 0
+#         np.exp(x) / (1 + np.exp(x))  # for x < 0
+#     )
+
 def logistic(x):
-    return np.where(
-        x >= 0,
-        1 / (1 + np.exp(-x)),   # for x >= 0
-        np.exp(x) / (1 + np.exp(x))  # for x < 0
-    )
+    x = np.clip(x, -500, 500)
+    return 1 / (1 + np.exp(-x))
 
 def relu(x):
     return np.maximum(0, x)
