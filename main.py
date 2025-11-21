@@ -9,7 +9,7 @@ import Utility.model_utils as model_utils
 
 # --- TUNED PARAMETERS ---
 # 1. Back to the original, best-performing architecture
-LAYERS = [] 
+LAYERS = [8,32,1] 
 # 2. Massively increase particles for a "brute force" search
 NUM_PARTICLES = 30
 # 3. Increase iterations for a longer search
@@ -120,20 +120,20 @@ def main():
     print(f"Test Set {LOSS_FUNCTION.upper()}: {test_loss:.6f}\n")
     
     # Visualizations
-    # visualizer = v.Visualizer(
-    #     pso=optimizer,
-    #     layers=LAYERS,
-    #     pso_params=PSO_PARAMS,
-    #     num_particles=NUM_PARTICLES,
-    #     num_iterations=NUM_ITERATIONS,
-    #     num_informants=NUM_INFORMANTS,
-    #     loss_function=LOSS_FUNCTION,
-    #     train_loss = final_train_loss,
-    #     test_loss = test_loss
-    # )   
+    visualizer = v.Visualizer(
+        pso=optimizer,
+        layers=LAYERS,
+        pso_params=PSO_PARAMS,
+        num_particles=NUM_PARTICLES,
+        num_iterations=NUM_ITERATIONS,
+        num_informants=NUM_INFORMANTS,
+        loss_function=LOSS_FUNCTION,
+        train_loss = final_train_loss,
+        test_loss = test_loss
+    )   
     
-    # test_folder = visualizer.record_test()
-    # model_utils.plot_predictions(y_test, y_test_predictions, test_folder = test_folder)
+    test_folder = visualizer.record_test()
+    model_utils.plot_predictions(y_test, y_test_predictions, test_folder = test_folder)
     # model_utils.save_and_evaluate(optimizer, model_template, ann_pso_bridge, y_mean, y_std, PSO_PARAMS, NUM_ITERATIONS, LOSS_FUNCTION, X_test_scaled, y_test)
 
     return {

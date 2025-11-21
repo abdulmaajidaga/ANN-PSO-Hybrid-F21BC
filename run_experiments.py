@@ -4,7 +4,7 @@ import Utility.visualizer as v
 import Utility.model_utils as model_utils
 import os
 
-NUM_RUNS = 5
+NUM_RUNS = 10
 BASE_DIR = "_Convergence_Test_3"
 
 final_train_losses = []
