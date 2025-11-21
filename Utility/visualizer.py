@@ -9,7 +9,7 @@ import pandas as pd
 class Visualizer:
     def __init__(self, pso, layers=None, pso_params=None, num_particles=None,
                  num_iterations=None, num_informants=None, loss_function=None, train_loss=None, test_loss = None,
-                 base_dir="Test_Results"):
+                 base_dir="Test_Results", animate = False):
         """
         Initialize visualizer with PSO object and experiment metadata.
         """
@@ -23,6 +23,7 @@ class Visualizer:
         self.train_loss = train_loss
         self.test_loss = test_loss
         self.base_dir = base_dir
+        self.animate = animate
 
 
     def _write_params_file(self):
@@ -242,6 +243,7 @@ class Visualizer:
         self.plot_position_distance_convergence()
         self.plot_swarm_diversity()
         self.plot_velocity_magnitude()
-        self.animate_pso_pca_gif()
+        if self.animate:
+            self.animate_pso_pca_gif()
         
         return self.test_dir

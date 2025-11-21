@@ -9,11 +9,11 @@ import Utility.model_utils as model_utils
 
 # --- TUNED PARAMETERS ---
 # 1. Back to the original, best-performing architecture
-LAYERS = [8, 16, 16, 1] 
+LAYERS = [8, 32, 1] 
 # 2. Massively increase particles for a "brute force" search
 NUM_PARTICLES = 30
 # 3. Increase iterations for a longer search
-NUM_ITERATIONS = 1000
+NUM_ITERATIONS = 200
 NUM_INFORMANTS = 6
 # 4. Back to the best-performing loss function
 LOSS_FUNCTION = 'mae' 
@@ -21,43 +21,45 @@ DISCRETE_PSO = True
 # --- END TUNED PARAMETERS ---
 
 W = 0.75
-THETHA = 3.0
+S = 3.0
 
 PSO_PARAMS_TEST = {
     'alpha': W,   
-    'beta': THETHA/2,    
-    'gamma': THETHA/2,     
-    'delta': 0,   
+    'beta': S/2,    
+    'gamma': S/2,     
+    'delta': 0.0,   
     'epsilon': 0.80
 }
 
 PSO_PARAMS_GLOBAL = {
-    'alpha': 0.729,    
-    'beta': 1.49445,   
+    'alpha': 0.75,    
+    'beta': 1.496180,   
     'gamma': 0.0,      
-    'delta': 1.49445,  
-    'epsilon': 1.0      
+    'delta': 1.496180,  
+    'epsilon': 0.8      
 }
+
 
 PSO_PARAMS_LOCAL = {
-    'alpha': 0.729,   
-    'beta': 1.49445,    
-    'gamma': 1.49445, 
+    'alpha': 0.75,   
+    'beta': 1.5,    
+    'gamma': 1.5, 
     'delta': 0.0,       
-    'epsilon': 0.75
+    'epsilon': 0.8
 }
+
 
 PSO_PARAMS_HYBRID = {
-    'alpha': 0.729,
-    'beta': 1.49445,
-    'gamma': 0.73,
-    'delta': 0.73,
-    'epsilon': 0.75
+    'alpha': 0.75,
+    'beta': 2.0,
+    'gamma': (2/3),
+    'delta': ((2/3)/2),
+    'epsilon': 0.8
 }
 
-PSO_PARAMS = PSO_PARAMS_LOCAL
+PSO_PARAMS = PSO_PARAMS_TEST
 
-def main():
+def main(params):
     # 2. Load Data
     data_handler = data_handler_class.DataHandler()
     (X_train_scaled, y_train), (X_test_scaled, y_test) = data_handler.transform_data(path="concrete_data.csv", train_split = 0.7, random_seed = 1)
@@ -82,9 +84,8 @@ def main():
         particle_length=particle_length,
         discrete_params=discrete_params,
         particles=initial_particles,
-        **PSO_PARAMS
+        **params
     )
-    
 
     # 6. Run Optimization
     print(f"Starting PSO optimization using {LOSS_FUNCTION.upper()}...\n") 
@@ -92,7 +93,7 @@ def main():
         optimizer._update()
         real_loss = optimizer.gbest_value
         real_mean_loss = optimizer.mean_fitness
-        if (i + 1) % 20 == 0:
+        if (i + 1) % 50 == 0:
             print(f"Iteration {i+1}/{NUM_ITERATIONS}, Global Best Loss: {real_loss:.6f}, Mean Loss: {real_mean_loss}")
     print("\nOptimization Finished.")
     
@@ -135,11 +136,12 @@ def main():
         "ann_pso_bridge": ann_pso_bridge,
         "model_template": model_template,
         "params": PSO_PARAMS,
+        "layers": LAYERS,
         "y_test": y_test,
         "y_test_predictions": y_test_predictions
     }
 
 
 if __name__ == "__main__":
-    main()
+    main(PSO_PARAMS)
 

@@ -1,11 +1,26 @@
 import numpy as np
 
+# def logistic(x):
+#     return np.where(
+#         x >= 0,
+#         1 / (1 + np.exp(-x)),   # for x >= 0
+#         np.exp(x) / (1 + np.exp(x))  # for x < 0
+#     )
+
 def logistic(x):
-    return np.where(
-        x >= 0,
-        1 / (1 + np.exp(-x)),   # for x >= 0
-        np.exp(x) / (1 + np.exp(x))  # for x < 0
-    )
+    x = np.asarray(x, dtype=float)
+    out = np.zeros_like(x)
+
+    # x >= 0 branch
+    pos = x >= 0
+    out[pos] = 1 / (1 + np.exp(-x[pos]))
+
+    # x < 0 branch
+    neg = ~pos
+    exp_x = np.exp(x[neg])
+    out[neg] = exp_x / (1 + exp_x)
+
+    return out
 
 def relu(x):
     return np.maximum(0, x)
